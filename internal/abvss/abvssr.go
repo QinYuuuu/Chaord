@@ -48,7 +48,7 @@ func (vss *ABVSS) ObtainShares(zix, ziy, xix, xiy []kyber.Point, index int) erro
 	vss.xiy[index] = xiy
 	if index == vss.nodeid {
 		for i := 0; i < vss.batchsize; i++ {
-			tmp, err := elgamal.Decrypt(vss.Curve, vss.sk, zix[i], ziy[i])
+			tmp, err := elgamal.Decrypt(vss.curve, vss.sk, zix[i], ziy[i])
 
 			if err != nil {
 				/*
@@ -62,7 +62,7 @@ func (vss *ABVSS) ObtainShares(zix, ziy, xix, xiy []kyber.Point, index int) erro
 		}
 		for i := 0; i < vss.vnum; i++ {
 
-			tmp, err := elgamal.Decrypt(vss.Curve, vss.sk, xix[i], xiy[i])
+			tmp, err := elgamal.Decrypt(vss.curve, vss.sk, xix[i], xiy[i])
 
 			if err != nil {
 				/*
@@ -108,7 +108,7 @@ func (vss *ABVSS) ConstructLCM() ([]*big.Int, error) {
 func (vss *ABVSS) GetRecoverShares(sk kyber.Scalar, index int, r [][]*big.Int) error {
 	fj := make([]*big.Int, vss.batchsize)
 	for i := 0; i < vss.batchsize; i++ {
-		tmp, err := elgamal.Decrypt(vss.Curve, sk, vss.zix[index][i], vss.ziy[index][i])
+		tmp, err := elgamal.Decrypt(vss.curve, sk, vss.zix[index][i], vss.ziy[index][i])
 		if err != nil {
 			return err
 		}
@@ -116,7 +116,7 @@ func (vss *ABVSS) GetRecoverShares(sk kyber.Scalar, index int, r [][]*big.Int) e
 	}
 	gj := make([]*big.Int, vss.vnum)
 	for i := 0; i < vss.vnum; i++ {
-		tmp, err := elgamal.Decrypt(vss.Curve, sk, vss.xix[index][i], vss.xiy[index][i])
+		tmp, err := elgamal.Decrypt(vss.curve, sk, vss.xix[index][i], vss.xiy[index][i])
 		if err != nil {
 			return err
 		}

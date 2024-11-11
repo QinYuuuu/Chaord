@@ -17,7 +17,7 @@ func (vss *ABVSS) DistributorInit(pk []kyber.Point, s []*big.Int) error {
 	if len(s) != vss.batchsize {
 		return errors.New("secret number mismatch batchsize")
 	}
-	vss.ABVSSD = &ABVSSD{
+	vss.ABVSSD = &D{
 		pk:     pk,
 		secret: s,
 		polyf:  make([]polynomial.Polynomial, vss.batchsize),
@@ -61,7 +61,7 @@ func (vss *ABVSS) GenerateShares(index int) ([]kyber.Point, []kyber.Point, []kyb
 	xiy := make([]kyber.Point, vss.vnum)
 	for i := 0; i < vss.batchsize; i++ {
 		fi := vss.polyf[i].EvalMod(new(big.Int).SetInt64(int64(index+1)), vss.p)
-		tmpx, tmpy, r := elgamal.Encrypt(vss.Curve, vss.pk[index], fi.Bytes())
+		tmpx, tmpy, r := elgamal.Encrypt(vss.curve, vss.pk[index], fi.Bytes())
 		if len(r) > 0 {
 			log.Printf("remainder %s", r)
 		}
@@ -70,7 +70,7 @@ func (vss *ABVSS) GenerateShares(index int) ([]kyber.Point, []kyber.Point, []kyb
 	}
 	for i := 0; i < vss.vnum; i++ {
 		gi := vss.polyg[i].EvalMod(new(big.Int).SetInt64(int64(index+1)), vss.p)
-		tmpx, tmpy, r := elgamal.Encrypt(vss.Curve, vss.pk[index], gi.Bytes())
+		tmpx, tmpy, r := elgamal.Encrypt(vss.curve, vss.pk[index], gi.Bytes())
 		if len(r) > 0 {
 			log.Printf("remainder %s", r)
 		}

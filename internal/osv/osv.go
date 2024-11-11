@@ -2,7 +2,6 @@ package osv
 
 import (
 	"errors"
-	"log"
 )
 
 const Echo string = "E"
@@ -55,9 +54,6 @@ func NewOSV(n, t, id int) *OSV {
 }
 
 func (osv *OSV) Init() []Message {
-	if osv.acquired {
-		log.Printf("node has acquired")
-	}
 	//log.Printf("node %v osv init", osv.id)
 	var msgs []Message
 	for i := 0; i < osv.n; i++ {
@@ -78,21 +74,6 @@ func (osv *OSV) Init() []Message {
 func (osv *OSV) Done() bool {
 	return osv.done
 }
-
-/*
-	func (osv *OSV) handleEcho(m Message) {
-		if osv.voted {
-			log.Printf("node has voted")
-		}
-		log.Printf("received ECHO from node %v", m.fromID)
-		osv.echosNum += 1
-	}
-
-	func (osv *OSV) handleVote(m Message) {
-		log.Printf("received VOTE from node %v", m.fromID)
-		osv.votesNum += 1
-	}
-*/
 
 func (osv *OSV) Loop(m Message) []Message {
 	msgs, _ := osv.Recv(m)

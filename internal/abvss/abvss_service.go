@@ -4,7 +4,6 @@ import (
 	"Chaord/internal/osv"
 	"Chaord/pkg/core"
 	"Chaord/pkg/protobuf"
-	"context"
 	"go.dedis.ch/kyber/v4"
 	"log"
 	"math/big"
@@ -46,14 +45,14 @@ func (vss *ABVSSService) Receive() {
 				xix := make([]kyber.Point, len(xixBytes))
 				xiy := make([]kyber.Point, len(xiyBytes))
 				for i := range zixBytes {
-					zix[i] = vss.Curve.Point()
-					ziy[i] = vss.Curve.Point()
+					zix[i] = vss.curve.Point()
+					ziy[i] = vss.curve.Point()
 					_ = zix[i].UnmarshalBinary(zixBytes[i])
 					_ = ziy[i].UnmarshalBinary(ziyBytes[i])
 				}
 				for i := range xixBytes {
-					xix[i] = vss.Curve.Point()
-					xiy[i] = vss.Curve.Point()
+					xix[i] = vss.curve.Point()
+					xiy[i] = vss.curve.Point()
 					_ = xix[i].UnmarshalBinary(xixBytes[i])
 					_ = xiy[i].UnmarshalBinary(xiyBytes[i])
 				}
@@ -85,29 +84,22 @@ func (vss *ABVSSService) ReceiveLCM(lcmmsg *protobuf.LCMMsg) {
 	for i := range lcmBytes {
 		lcm[i] = new(big.Int).SetBytes(lcmBytes[i])
 	}
-	err := vss.VerifyLCM(lcm, int(lcmmsg.GetFromID()))
+	tuple := struct {
+		index int
+		lcm   []*big.Int
+	}{
+		index: int(lcmmsg.GetFromID()),
+		lcm:   lcm,
+	}
+
+	vss.shareCh <- tuple
+	err := vss.VerifyLCM()
 	if err != nil {
 		log.Printf("node %v receive lcm from node %v error: %v", vss.GetNodeID(), lcmmsg.FromID, err)
 		return
 	}
 	//log.Printf("node %v receive lcm from node %v", vss.GetNodeID(), lcmmsg.FromID)
 	return
-}
-
-func (vss *ABVSSService) ReconstructLCM(ctx context.Context, sk *protobuf.SKMsg) (*protobuf.AckMsg, error) {
-	if int(sk.DestID) != vss.GetNodeID() {
-		log.Printf("node %v receive shares wrong desID %v", vss.GetNodeID(), sk.GetDestID())
-		return &protobuf.AckMsg{}, nil
-	}
-	return &protobuf.AckMsg{}, nil
-}
-
-func (vss *ABVSSService) ReceiveRecShares(ctx context.Context, sk *protobuf.SKMsg) (*protobuf.AckMsg, error) {
-	if int(sk.DestID) != vss.GetNodeID() {
-		log.Printf("node %v receive shares wrong desID %v", vss.GetNodeID(), sk.GetDestID())
-		return &protobuf.AckMsg{}, nil
-	}
-	return &protobuf.AckMsg{}, nil
 }
 
 func (vss *ABVSSService) SecretSharing(pk []kyber.Point, s []*big.Int) {

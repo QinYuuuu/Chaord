@@ -1,15 +1,13 @@
 package abvss
 
 import (
+	"Chaord/pkg/utils/polynomial"
 	"errors"
 	"go.dedis.ch/kyber/v4"
 	"go.dedis.ch/kyber/v4/group/edwards25519"
 	//"go.dedis.ch/kyber/v4/pairing/bls12381/circl"
 	"math/big"
 	"math/rand"
-	"sync"
-
-	"Chaord/pkg/utils/polynomial"
 )
 
 type ABVSS struct {
@@ -20,11 +18,10 @@ type ABVSS struct {
 	p          *big.Int
 	batchsize  int
 	vnum       int
-	Curve      kyber.Group
-	mutex      *sync.Mutex
-	*ABVSSD
-	*ABVSSR
-	*ABVSSV
+	curve      kyber.Group
+	*Distributor
+	*Receiver
+	*Verifier
 }
 
 func (vss *ABVSS) GetNodeID() int {
@@ -34,7 +31,7 @@ func (vss *ABVSS) GetInstanceID() int {
 	return vss.instanceid
 }
 
-type ABVSSD struct {
+type Distributor struct {
 	pk     []kyber.Point
 	secret []*big.Int
 	polyf  []polynomial.Polynomial
@@ -42,9 +39,8 @@ type ABVSSD struct {
 	//shares [][]*big.Int
 }
 
-type ABVSSR struct {
-	sk kyber.Scalar
-
+type Receiver struct {
+	sk           kyber.Scalar
 	zix          [][]kyber.Point
 	ziy          [][]kyber.Point
 	xix          [][]kyber.Point
@@ -58,8 +54,12 @@ type ABVSSR struct {
 	qlist        map[int][]*big.Int
 }
 
-type ABVSSV struct {
-	Count int
+type Verifier struct {
+	count   int
+	shareCh chan struct {
+		index int
+		lcm   []*big.Int
+	}
 	ilist []struct {
 		index int
 		lcm   []*big.Int
@@ -69,12 +69,12 @@ type ABVSSV struct {
 	Ready chan bool
 }
 
-func NewVSS(index, nodeid, nodenum, degree, batchsize, vnum int, p *big.Int, flag int, mutex *sync.Mutex) (*ABVSS, error) {
+func NewVSS(index, nodeid, nodenum, degree, batchsize, vnum int, p *big.Int, flag int) (*ABVSS, error) {
 	if nodenum < 3*degree+1 {
-		return nil, errors.New("must satisfy n >= 3f+1")
+		return nil, errors.New("n must satisfy n >= 3f+1")
 	}
 	if batchsize <= 0 || vnum <= 0 {
-		return nil, errors.New("batchsize/vnum must >= 1")
+		return nil, errors.New("batchsize and vnum must >= 1")
 	}
 	var curve kyber.Group
 	if flag == 1 {
@@ -90,8 +90,7 @@ func NewVSS(index, nodeid, nodenum, degree, batchsize, vnum int, p *big.Int, fla
 		p:          p,
 		batchsize:  batchsize,
 		vnum:       vnum,
-		Curve:      curve,
-		mutex:      mutex,
+		curve:      curve,
 	}, nil
 }
 
