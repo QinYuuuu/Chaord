@@ -1,7 +1,6 @@
 package abvss
 
 import (
-	"Chaord/internal/osv"
 	"Chaord/pkg/core"
 	"Chaord/pkg/protobuf"
 	"go.dedis.ch/kyber/v4"
@@ -9,29 +8,15 @@ import (
 	"math/big"
 )
 
-type ABVSSService struct {
-	*ABVSS
-	*osv.OSV
-	DealerBandwidthUsage int
-	BandwidthUsage       int
-	Receivechannel       chan *protobuf.Message
-	Sendchannels         []chan *protobuf.Message
+func (vss *ABVSS) Run() {
+	go vss.Receive()
 }
 
-func NewABVSSService(n int, send []chan *protobuf.Message, receive chan *protobuf.Message) *ABVSSService {
-	return &ABVSSService{
-		DealerBandwidthUsage: 0,
-		BandwidthUsage:       0,
-		Receivechannel:       receive,
-		Sendchannels:         send,
-	}
-}
-
-func (vss *ABVSSService) Receive() {
+func (vss *ABVSS) Receive() {
 	for {
 		//log.Printf("node %v waiting", dkg.id)
-		msg := <-vss.Receivechannel
-		log.Printf("node %v handle msg: %v from node %v", vss.nodeid, msg.GetType(), msg.Sender)
+		msg := <-vss.ReceiveChan
+		log.Printf("node %v handle msg: %v from node %v", vss.nodeID, msg.GetType(), msg.Sender)
 		go func(msg *protobuf.Message) {
 			msgType := msg.GetType()
 			if msgType == "Shares" {
@@ -69,40 +54,27 @@ func (vss *ABVSSService) Receive() {
 			if msgType == "SK" {
 
 			}
-			if msgType == "OSV" {
-				newmsg := core.Decapsulation(msgType, msg).(*protobuf.OSVMsg)
-				vss.ReceiveOSV(newmsg)
-			}
 		}(msg)
 
 	}
 }
 
-func (vss *ABVSSService) ReceiveLCM(lcmmsg *protobuf.LCMMsg) {
+func (vss *ABVSS) ReceiveLCM(lcmmsg *protobuf.LCMMsg) {
 	lcmBytes := lcmmsg.GetLcmi()
 	lcm := make([]*big.Int, len(lcmBytes))
 	for i := range lcmBytes {
 		lcm[i] = new(big.Int).SetBytes(lcmBytes[i])
 	}
-	tuple := struct {
-		index int
-		lcm   []*big.Int
-	}{
+	tuple := LcmTuple{
 		index: int(lcmmsg.GetFromID()),
 		lcm:   lcm,
 	}
-
 	vss.shareCh <- tuple
-	err := vss.VerifyLCM()
-	if err != nil {
-		log.Printf("node %v receive lcm from node %v error: %v", vss.GetNodeID(), lcmmsg.FromID, err)
-		return
-	}
 	//log.Printf("node %v receive lcm from node %v", vss.GetNodeID(), lcmmsg.FromID)
 	return
 }
 
-func (vss *ABVSSService) SecretSharing(pk []kyber.Point, s []*big.Int) {
+func (vss *ABVSS) SecretSharing(pk []kyber.Point, s []*big.Int) {
 	err := vss.DistributorInit(pk, s)
 	if err != nil {
 		log.Printf("init error: %v", err)
@@ -111,7 +83,7 @@ func (vss *ABVSSService) SecretSharing(pk []kyber.Point, s []*big.Int) {
 	if err != nil {
 		log.Printf("sample poly error: %v", err)
 	}
-	for i := 0; i < vss.nodenum; i++ {
+	for i := 0; i < vss.nodeNum; i++ {
 		go func(i int) {
 			zix, ziy, xix, xiy, err := vss.GenerateShares(i)
 			if err != nil {
@@ -131,7 +103,7 @@ func (vss *ABVSSService) SecretSharing(pk []kyber.Point, s []*big.Int) {
 				xiyBytes[j], _ = xiy[j].MarshalBinary()
 			}
 			sharesmsg := &protobuf.SharesMsg{
-				FromID: int64(vss.nodeid),
+				FromID: int64(vss.nodeID),
 				Index:  int64(i),
 				Zix:    zixBytes,
 				Ziy:    ziyBytes,
@@ -139,56 +111,58 @@ func (vss *ABVSSService) SecretSharing(pk []kyber.Point, s []*big.Int) {
 				Xiy:    xiyBytes,
 			}
 
-			m := core.Encapsulation("Shares", nil, uint32(vss.nodeid), sharesmsg)
+			m := core.Encapsulation("Shares", nil, uint32(vss.nodeID), sharesmsg)
 
 			//ctx, cancel := context.WithCancel(context.Background())
 			//defer cancel()
-			for j := 0; j < vss.nodenum; j++ {
-				if j == vss.nodeid {
+			for j := 0; j < vss.nodeNum; j++ {
+				if j == vss.nodeID {
 					err := vss.ObtainShares(zix, ziy, xix, xiy, i)
 					if err != nil {
 						log.Printf("obtain shares error: %v", err)
 					}
 					continue
 				}
-				//log.Printf("node %v send shares to node %v", vss.nodeid, j)
-				vss.Sendchannels[j] <- m
+				//log.Printf("node %v send shares to node %v", vss.nodeID, j)
+				vss.SendChan[j] <- m
 			}
 		}(i)
 
 	}
 }
 
-func (vss *ABVSSService) BroadcastLCM() {
-	lcm, err := vss.ConstructLCM()
+func (vss *ABVSS) BroadcastLCM() {
+	tuple, err := vss.ConstructLCM()
 	if err != nil {
 		log.Printf("construct lcm error: %v", err)
 	}
+	lcm := tuple.lcm
 	lcmBytes := make([][]byte, len(lcm))
 	for i := range lcm {
 		lcmBytes[i] = lcm[i].Bytes()
 	}
 
-	for i := 0; i < vss.nodenum; i++ {
+	for i := 0; i < vss.nodeNum; i++ {
 		lcmmsg := &protobuf.LCMMsg{
-			FromID: int64(vss.nodeid),
+			FromID: int64(vss.nodeID),
 			DestID: int64(i),
 			Lcmi:   lcmBytes,
 		}
-		if i == vss.nodeid {
-			err := vss.VerifyLCM(lcm, vss.nodeid)
+		if i == vss.nodeID {
+			err := vss.VerifyLCM(tuple)
 			if err != nil {
 				log.Printf("VerifyLCM error: %v", err)
 			}
 			continue
 		}
-		m := core.Encapsulation("LCM", nil, uint32(vss.nodeid), lcmmsg)
-		vss.Sendchannels[i] <- m
+		m := core.Encapsulation("LCM", nil, uint32(vss.nodeID), lcmmsg)
+		vss.SendChan[i] <- m
 	}
 }
 
-func (s *ABVSSService) OSVInit() {
-	thisosv := s.OSV
+/*
+func (s *ABVSS) OSVInit() {
+	thisosv := s.Node
 	//log.Printf("node %v thisosv init in instance %v", s.id, i)
 	msgs := thisosv.Init()
 	//ctx, cancel := context.WithCancel(context.Background())
@@ -200,21 +174,22 @@ func (s *ABVSSService) OSVInit() {
 			InstanceID: 0,
 			Mtype:      msg.Mtype,
 		}
-		m := core.Encapsulation("OSV", nil, uint32(s.nodeid), protonewmsg)
-		s.Sendchannels[msg.DestID] <- m
+		m := core.Encapsulation("Node", nil, uint32(s.nodeID), protonewmsg)
+		s.SendChan[msg.DestID] <- m
 	}
 }
-
-func (s *ABVSSService) ReceiveOSV(osvmsg *protobuf.OSVMsg) {
+*/
+/*
+func (s *ABVSS) ReceiveOSV(osvmsg *protobuf.OSVMsg) {
 	msg := osv.Message{
 		FromID: int(osvmsg.GetFromID()),
 		DestID: int(osvmsg.GetDestID()),
 		Mtype:  osvmsg.GetMtype(),
 	}
 	//log.Printf("node %v receive %v from node %v from in instance %v", s.id, osvmsg.FromID, osvmsg.Mtype, osvmsg.GetInstanceID())
-	recvmsgs, err := s.OSV.Recv(msg)
+	recvmsgs, err := s.Node.Recv(msg)
 	if err != nil {
-		log.Printf("node %v receive msg err: %v", s.nodeid, err)
+		log.Printf("node %v receive msg err: %v", s.nodeID, err)
 		return
 	}
 	for _, newmsg := range recvmsgs {
@@ -224,7 +199,8 @@ func (s *ABVSSService) ReceiveOSV(osvmsg *protobuf.OSVMsg) {
 			InstanceID: osvmsg.InstanceID,
 			Mtype:      newmsg.Mtype,
 		}
-		m := core.Encapsulation("OSV", nil, uint32(s.nodeid), protonewmsg)
+		m := core.Encapsulation("Node", nil, uint32(s.nodeID), protonewmsg)
 		s.Sendchannels[newmsg.DestID] <- m
 	}
 }
+*/

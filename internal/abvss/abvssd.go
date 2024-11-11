@@ -11,26 +11,26 @@ import (
 )
 
 func (vss *ABVSS) DistributorInit(pk []kyber.Point, s []*big.Int) error {
-	if len(pk) != vss.nodenum {
+	if len(pk) != vss.nodeNum {
 		return errors.New("node number mismatch PK number")
 	}
-	if len(s) != vss.batchsize {
-		return errors.New("secret number mismatch batchsize")
+	if len(s) != vss.batchSize {
+		return errors.New("secret number mismatch batchSize")
 	}
-	vss.ABVSSD = &D{
+	vss.Distributor = &Distributor{
 		pk:     pk,
 		secret: s,
-		polyf:  make([]polynomial.Polynomial, vss.batchsize),
-		polyg:  make([]polynomial.Polynomial, vss.vnum),
+		polyf:  make([]polynomial.Polynomial, vss.batchSize),
+		polyg:  make([]polynomial.Polynomial, vss.vNum),
 	}
 	return nil
 }
 
 func (vss *ABVSS) SamplePoly() error {
-	if vss.ABVSSD == nil {
+	if vss.Distributor == nil {
 		return errors.New("not a distributor")
 	}
-	for i := 0; i < vss.batchsize; i++ {
+	for i := 0; i < vss.batchSize; i++ {
 		poly, err := polynomial.NewRand(vss.degree, vss.p)
 		if err != nil {
 			return err
@@ -41,7 +41,7 @@ func (vss *ABVSS) SamplePoly() error {
 		}
 		vss.polyf[i] = poly
 	}
-	for i := 0; i < vss.vnum; i++ {
+	for i := 0; i < vss.vNum; i++ {
 		poly, err := polynomial.NewRand(vss.degree, vss.p)
 		if err != nil {
 			return err
@@ -52,14 +52,14 @@ func (vss *ABVSS) SamplePoly() error {
 }
 
 func (vss *ABVSS) GenerateShares(index int) ([]kyber.Point, []kyber.Point, []kyber.Point, []kyber.Point, error) {
-	if vss.ABVSSD == nil {
+	if vss.Distributor == nil {
 		return nil, nil, nil, nil, errors.New("not a distributor")
 	}
-	zix := make([]kyber.Point, vss.batchsize)
-	ziy := make([]kyber.Point, vss.batchsize)
-	xix := make([]kyber.Point, vss.vnum)
-	xiy := make([]kyber.Point, vss.vnum)
-	for i := 0; i < vss.batchsize; i++ {
+	zix := make([]kyber.Point, vss.batchSize)
+	ziy := make([]kyber.Point, vss.batchSize)
+	xix := make([]kyber.Point, vss.vNum)
+	xiy := make([]kyber.Point, vss.vNum)
+	for i := 0; i < vss.batchSize; i++ {
 		fi := vss.polyf[i].EvalMod(new(big.Int).SetInt64(int64(index+1)), vss.p)
 		tmpx, tmpy, r := elgamal.Encrypt(vss.curve, vss.pk[index], fi.Bytes())
 		if len(r) > 0 {
@@ -68,7 +68,7 @@ func (vss *ABVSS) GenerateShares(index int) ([]kyber.Point, []kyber.Point, []kyb
 		zix[i] = tmpx
 		ziy[i] = tmpy
 	}
-	for i := 0; i < vss.vnum; i++ {
+	for i := 0; i < vss.vNum; i++ {
 		gi := vss.polyg[i].EvalMod(new(big.Int).SetInt64(int64(index+1)), vss.p)
 		tmpx, tmpy, r := elgamal.Encrypt(vss.curve, vss.pk[index], gi.Bytes())
 		if len(r) > 0 {

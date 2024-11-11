@@ -42,7 +42,7 @@ func Encapsulation(messageType string, ID []byte, sender uint32, payloadMessage 
 		data, err = proto.Marshal((payloadMessage).(*protobuf.LCMMsg))
 	case "SK":
 		data, err = proto.Marshal((payloadMessage).(*protobuf.SKMsg))
-	case "OSV":
+	case "Node":
 		data, err = proto.Marshal((payloadMessage).(*protobuf.OSVMsg))
 	}
 
@@ -120,7 +120,7 @@ func Decapsulation(messageType string, m *protobuf.Message) any {
 		var payloadMessage protobuf.SKMsg
 		proto.Unmarshal(m.Data, &payloadMessage)
 		return &payloadMessage
-	case "OSV":
+	case "Node":
 		var payloadMessage protobuf.OSVMsg
 		proto.Unmarshal(m.Data, &payloadMessage)
 		return &payloadMessage

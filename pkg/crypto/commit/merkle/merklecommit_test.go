@@ -1,7 +1,7 @@
 package merkle
 
 import (
-	"crypto/hasher"
+	"crypto/md5"
 	"fmt"
 	"reflect"
 	"testing"
@@ -10,14 +10,15 @@ import (
 func TestNewMerkleTree(t *testing.T) {
 	dataList := [][]byte{[]byte("alice"), []byte("bob"), []byte("cindy"), []byte("david"), []byte("elisa")}
 	var roothash []byte
-	tmp1 := append(hasher.SHA256Hasher([]byte("alice")), hasher.SHA256Hasher([]byte("bob"))...)
-	tmp2 := append(hasher.SHA256Hasher([]byte("cindy")), hasher.SHA256Hasher([]byte("david"))...)
-	tmp3 := append(hasher.SHA256Hasher([]byte("elisa")), hasher.SHA256Hasher([]byte("elisa"))...)
-	tmp4 := append(hasher.SHA256Hasher(tmp1), hasher.SHA256Hasher(tmp2)...)
-	tmp5 := append(hasher.SHA256Hasher(tmp3), hasher.SHA256Hasher(tmp3)...)
-	tmp6 := append(hasher.SHA256Hasher(tmp4), hasher.SHA256Hasher(tmp5)...)
-	roothash = hasher.SHA256Hasher(tmp6)
-	m, _ := NewMerkleTree(dataList, hasher.SHA256Hasher)
+	hasher := md5.New()
+	tmp1 := append(hasher.Sum([]byte("alice")), hasher.Sum([]byte("bob"))...)
+	tmp2 := append(hasher.Sum([]byte("cindy")), hasher.Sum([]byte("david"))...)
+	tmp3 := append(hasher.Sum([]byte("elisa")), hasher.Sum([]byte("elisa"))...)
+	tmp4 := append(hasher.Sum(tmp1), hasher.Sum(tmp2)...)
+	tmp5 := append(hasher.Sum(tmp3), hasher.Sum(tmp3)...)
+	tmp6 := append(hasher.Sum(tmp4), hasher.Sum(tmp5)...)
+	roothash = hasher.Sum(tmp6)
+	m, _ := NewMerkleTree(dataList, hasher.Sum)
 	t.Run("Verify the inorder of merkle tree", func(t *testing.T) {
 		got := m.Root().Hash()
 		if !reflect.DeepEqual(got, roothash) {
@@ -27,15 +28,16 @@ func TestNewMerkleTree(t *testing.T) {
 }
 
 func TestCommitment(t *testing.T) {
+	hasher := md5.New()
 	dataList := [][]byte{[]byte("alice"), []byte("bob"), []byte("cindy"), []byte("david"), []byte("elisa")}
-	m, _ := NewMerkleTree(dataList, hasher.SHA256Hasher)
-	//tmp1 := append(hasher.SHA256Hasher([]byte("alice")), hasher.SHA256Hasher([]byte("bob"))...)
-	tmp2 := append(hasher.SHA256Hasher([]byte("cindy")), hasher.SHA256Hasher([]byte("david"))...)
-	tmp3 := append(hasher.SHA256Hasher([]byte("elisa")), hasher.SHA256Hasher([]byte("elisa"))...)
-	//tmp4 := append(hasher.SHA256Hasher(tmp1), hasher.SHA256Hasher(tmp2)...)
-	tmp5 := append(hasher.SHA256Hasher(tmp3), hasher.SHA256Hasher(tmp3)...)
-	//tmp6 := append(hasher.SHA256Hasher(tmp4), hasher.SHA256Hasher(tmp5)...)
-	hashlist := [][]byte{hasher.SHA256Hasher([]byte("alice")), hasher.SHA256Hasher(tmp2), hasher.SHA256Hasher(tmp5)}
+	m, _ := NewMerkleTree(dataList, hasher.Sum)
+	//tmp1 := append(hasher.Sum([]byte("alice")), hasher.Sum([]byte("bob"))...)
+	tmp2 := append(hasher.Sum([]byte("cindy")), hasher.Sum([]byte("david"))...)
+	tmp3 := append(hasher.Sum([]byte("elisa")), hasher.Sum([]byte("elisa"))...)
+	//tmp4 := append(hasher.Sum(tmp1), hasher.Sum(tmp2)...)
+	tmp5 := append(hasher.Sum(tmp3), hasher.Sum(tmp3)...)
+	//tmp6 := append(hasher.Sum(tmp4), hasher.Sum(tmp5)...)
+	hashlist := [][]byte{hasher.Sum([]byte("alice")), hasher.Sum(tmp2), hasher.Sum(tmp5)}
 	poslist := []bool{true, false, false}
 	want := Witness{}
 	want.SetHash(hashlist)
@@ -51,7 +53,7 @@ func TestCommitment(t *testing.T) {
 	t.Run("Verify the witness", func(t *testing.T) {
 		comm := Commit(m)
 		w, _ := CreateWitness(m, 1)
-		result, _ := Verify(comm, w, []byte("bob"), hasher.SHA256Hasher)
+		result, _ := Verify(comm, w, []byte("bob"), hasher.Sum)
 		if !result {
 			t.Errorf("verify failed")
 		}

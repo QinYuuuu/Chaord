@@ -1649,7 +1649,7 @@ var file_Message_proto_depIdxs = []int32{
 	20, // 7: ABDKG.ReconstructLCM:input_type -> SKMsg
 	20, // 8: ABDKG.ReceiveRecShares:input_type -> SKMsg
 	21, // 9: ABDKG.ReceiveOSV:input_type -> OSVMsg
-	21, // 10: OSV.Receive:input_type -> OSVMsg
+	21, // 10: Node.Receive:input_type -> OSVMsg
 	0,  // 11: Conn.Receive:input_type -> TestHelloMessage
 	22, // 12: ABVSS.ReceiveShares:output_type -> AckMsg
 	22, // 13: ABVSS.ReceiveLCM:output_type -> AckMsg
@@ -1660,7 +1660,7 @@ var file_Message_proto_depIdxs = []int32{
 	22, // 18: ABDKG.ReconstructLCM:output_type -> AckMsg
 	22, // 19: ABDKG.ReceiveRecShares:output_type -> AckMsg
 	22, // 20: ABDKG.ReceiveOSV:output_type -> AckMsg
-	22, // 21: OSV.Receive:output_type -> AckMsg
+	22, // 21: Node.Receive:output_type -> AckMsg
 	1,  // 22: Conn.Receive:output_type -> TestResMessage
 	12, // [12:23] is the sub-list for method output_type
 	1,  // [1:12] is the sub-list for method input_type

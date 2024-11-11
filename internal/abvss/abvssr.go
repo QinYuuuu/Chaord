@@ -15,14 +15,14 @@ import (
 const ReceiverRandSeed = 10
 
 func (vss *ABVSS) ReceiverInit(sk kyber.Scalar) {
-	vss.ABVSSR = &ABVSSR{
+	vss.Receiver = &Receiver{
 		sk:           sk,
-		fshares:      make([]*big.Int, vss.batchsize),
-		gshares:      make([]*big.Int, vss.vnum),
-		xix:          make([][]kyber.Point, vss.nodenum),
-		xiy:          make([][]kyber.Point, vss.nodenum),
-		zix:          make([][]kyber.Point, vss.nodenum),
-		ziy:          make([][]kyber.Point, vss.nodenum),
+		fshares:      make([]*big.Int, vss.batchSize),
+		gshares:      make([]*big.Int, vss.vNum),
+		xix:          make([][]kyber.Point, vss.nodeNum),
+		xiy:          make([][]kyber.Point, vss.nodeNum),
+		zix:          make([][]kyber.Point, vss.nodeNum),
+		ziy:          make([][]kyber.Point, vss.nodeNum),
 		Received:     make(chan bool),
 		randombeacon: rand.New(rand.NewSource(ReceiverRandSeed)),
 	}
@@ -33,21 +33,21 @@ func (vss *ABVSS) GetShares() ([]*big.Int, []*big.Int) {
 }
 
 func (vss *ABVSS) ObtainShares(zix, ziy, xix, xiy []kyber.Point, index int) error {
-	if vss.ABVSSR == nil {
+	if vss.Receiver == nil {
 		return errors.New("not a receiver")
 	}
-	if len(zix) != vss.batchsize || len(ziy) != vss.batchsize {
+	if len(zix) != vss.batchSize || len(ziy) != vss.batchSize {
 		return errors.New("insufficient zi")
 	}
-	if len(xix) != vss.vnum || len(xix) != vss.vnum {
+	if len(xix) != vss.vNum || len(xix) != vss.vNum {
 		return errors.New("insufficient xi")
 	}
 	vss.zix[index] = zix
 	vss.ziy[index] = ziy
 	vss.xix[index] = xix
 	vss.xiy[index] = xiy
-	if index == vss.nodeid {
-		for i := 0; i < vss.batchsize; i++ {
+	if index == vss.nodeID {
+		for i := 0; i < vss.batchSize; i++ {
 			tmp, err := elgamal.Decrypt(vss.curve, vss.sk, zix[i], ziy[i])
 
 			if err != nil {
@@ -60,7 +60,7 @@ func (vss *ABVSS) ObtainShares(zix, ziy, xix, xiy []kyber.Point, index int) erro
 			}
 			log.Printf("vss.fshares[i] %v", vss.fshares[i])
 		}
-		for i := 0; i < vss.vnum; i++ {
+		for i := 0; i < vss.vNum; i++ {
 
 			tmp, err := elgamal.Decrypt(vss.curve, vss.sk, xix[i], xiy[i])
 
@@ -79,51 +79,55 @@ func (vss *ABVSS) ObtainShares(zix, ziy, xix, xiy []kyber.Point, index int) erro
 	return nil
 }
 
-func (vss *ABVSS) ConstructLCM() ([]*big.Int, error) {
-	if vss.ABVSSR == nil {
-		return nil, errors.New("not a receiver")
+func (vss *ABVSS) ConstructLCM() (LcmTuple, error) {
+	if vss.Receiver == nil {
+		return LcmTuple{}, errors.New("not a receiver")
 	}
-	lcm := make([]*big.Int, vss.vnum)
-	r := make([][]*big.Int, vss.vnum)
-	for i := 0; i < vss.vnum; i++ {
-		r[i] = make([]*big.Int, vss.batchsize)
-		for j := 0; j < vss.batchsize; j++ {
+	lcm := make([]*big.Int, vss.vNum)
+	r := make([][]*big.Int, vss.vNum)
+	for i := 0; i < vss.vNum; i++ {
+		r[i] = make([]*big.Int, vss.batchSize)
+		for j := 0; j < vss.batchSize; j++ {
 			r[i][j] = new(big.Int).Mod(new(big.Int).SetInt64(vss.randombeacon.Int63()), vss.p)
 			//fmt.Printf("%v %v %v\n", i, j, r[i][j])
 		}
 	}
-	for i := 0; i < vss.vnum; i++ {
+	for i := 0; i < vss.vNum; i++ {
 		//fmt.Println(r[i])
 		tmp, err := utils.DotProduct(vss.fshares, r[i])
-		//fmt.Printf("node %v get fshares %v\n", vss.nodeid, vss.fshares)
+		//fmt.Printf("node %v get fshares %v\n", vss.nodeID, vss.fshares)
 		if err != nil {
-			return nil, err
+			return LcmTuple{}, err
 		}
 		lcm[i] = new(big.Int).Mod(new(big.Int).Add(tmp, vss.gshares[i]), vss.p)
-		//fmt.Printf("node %v %v li:%v\n", vss.nodeid, i, lcm[i])
+		//fmt.Printf("node %v %v li:%v\n", vss.nodeID, i, lcm[i])
 	}
-	return lcm, nil
+	tuple := LcmTuple{
+		index: vss.nodeID,
+		lcm:   lcm,
+	}
+	return tuple, nil
 }
 
 func (vss *ABVSS) GetRecoverShares(sk kyber.Scalar, index int, r [][]*big.Int) error {
-	fj := make([]*big.Int, vss.batchsize)
-	for i := 0; i < vss.batchsize; i++ {
+	fj := make([]*big.Int, vss.batchSize)
+	for i := 0; i < vss.batchSize; i++ {
 		tmp, err := elgamal.Decrypt(vss.curve, sk, vss.zix[index][i], vss.ziy[index][i])
 		if err != nil {
 			return err
 		}
 		fj[i] = new(big.Int).SetBytes(tmp)
 	}
-	gj := make([]*big.Int, vss.vnum)
-	for i := 0; i < vss.vnum; i++ {
+	gj := make([]*big.Int, vss.vNum)
+	for i := 0; i < vss.vNum; i++ {
 		tmp, err := elgamal.Decrypt(vss.curve, sk, vss.xix[index][i], vss.xiy[index][i])
 		if err != nil {
 			return err
 		}
 		fj[i] = new(big.Int).SetBytes(tmp)
 	}
-	lcm := make([]*big.Int, vss.vnum)
-	for i := 0; i < vss.vnum; i++ {
+	lcm := make([]*big.Int, vss.vNum)
+	for i := 0; i < vss.vNum; i++ {
 		tmp, err := utils.DotProduct(fj, r[i])
 		if err != nil {
 			return err
@@ -147,7 +151,7 @@ func (vss *ABVSS) HandleComplain(sk kyber.Scalar, index int) error {
 }
 
 func (vss *ABVSS) ShareRecovery() error {
-	if vss.ABVSSR == nil {
+	if vss.Receiver == nil {
 		return errors.New("not a receiver")
 	}
 	if !vss.complain {
@@ -157,17 +161,17 @@ func (vss *ABVSS) ShareRecovery() error {
 		return errors.New("invalid Q list")
 	}
 	xlist := make([]*big.Int, len(vss.qlist))
-	ylist := make([][]*big.Int, vss.batchsize)
+	ylist := make([][]*big.Int, vss.batchSize)
 	for i, index := range vss.jlist {
 		xlist[i] = new(big.Int).SetInt64(int64(index))
 		ylist[i] = vss.qlist[index]
 	}
-	for i := 0; i < vss.batchsize; i++ {
+	for i := 0; i < vss.batchSize; i++ {
 		f, err := polynomial.LagrangeInterpolation(xlist, ylist[i], vss.p)
 		if err != nil {
 			return err
 		}
-		vss.fshares[i] = f.EvalMod(new(big.Int).SetInt64(int64(vss.nodeid)), vss.p)
+		vss.fshares[i] = f.EvalMod(new(big.Int).SetInt64(int64(vss.nodeID)), vss.p)
 	}
 	return nil
 }

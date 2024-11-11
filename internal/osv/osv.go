@@ -2,6 +2,7 @@ package osv
 
 import (
 	"errors"
+	"log"
 )
 
 const Echo string = "E"
@@ -25,7 +26,7 @@ func (m Message) Type() string {
 	return m.Mtype
 }
 
-type OSV struct {
+type Node struct {
 	n        int
 	t        int
 	id       int
@@ -36,24 +37,29 @@ type OSV struct {
 	voted    bool
 	done     bool
 	OutPut   chan bool
+
+	SendChan    chan Message
+	ReceiveChan chan Message
 }
 
-func NewOSV(n, t, id int) *OSV {
-	return &OSV{
-		n:        n,
-		t:        t,
-		id:       id,
-		echosNum: 0,
-		votesNum: 0,
-		nVotes:   make([]bool, n),
-		acquired: false,
-		voted:    false,
-		done:     false,
-		OutPut:   make(chan bool),
+func NewOSV(n, t, id int) *Node {
+	return &Node{
+		n:           n,
+		t:           t,
+		id:          id,
+		echosNum:    0,
+		votesNum:    0,
+		nVotes:      make([]bool, n),
+		acquired:    false,
+		voted:       false,
+		done:        false,
+		OutPut:      make(chan bool),
+		SendChan:    make(chan Message, 100),
+		ReceiveChan: make(chan Message, 100),
 	}
 }
 
-func (osv *OSV) Init() []Message {
+func (osv *Node) Init() {
 	//log.Printf("node %v osv init", osv.id)
 	var msgs []Message
 	for i := 0; i < osv.n; i++ {
@@ -68,14 +74,16 @@ func (osv *OSV) Init() []Message {
 			msgs = append(msgs, msg)
 		}
 	}
-	return msgs
+	for _, msg := range msgs {
+		osv.SendChan <- msg
+	}
 }
 
-func (osv *OSV) Done() bool {
+func (osv *Node) Done() bool {
 	return osv.done
 }
 
-func (osv *OSV) Loop(m Message) []Message {
+func (osv *Node) Loop(m Message) []Message {
 	msgs, _ := osv.Recv(m)
 	i := 0
 	flag := len(msgs)
@@ -91,14 +99,14 @@ func (osv *OSV) Loop(m Message) []Message {
 	return msgs
 }
 
-func (osv *OSV) Recv(m Message) ([]Message, error) {
+func (osv *Node) Recv(m Message) ([]Message, error) {
 	var msgs []Message
 	if m.DestID != osv.id {
 		return nil, errors.New("wrong destination id")
 	}
 	if m.Mtype == Echo {
 		//osv.handleEcho(m)
-		//log.Printf("[node %v] received ECHO from node %v", osv.id, m.FromID)
+		log.Printf("[node %v] received ECHO from node %v", osv.id, m.FromID)
 		osv.echosNum += 1
 	}
 	if m.Mtype == Vote {
@@ -107,7 +115,7 @@ func (osv *OSV) Recv(m Message) ([]Message, error) {
 			//log.Printf("node %v has already voted", m.fromID)
 			return nil, nil
 		}
-		//log.Printf("[node %v] received VOTE from node %v", osv.id, m.FromID)
+		log.Printf("[node %v] received VOTE from node %v", osv.id, m.FromID)
 		osv.votesNum += 1
 		osv.nVotes[m.FromID] = true
 	}
@@ -118,8 +126,8 @@ func (osv *OSV) Recv(m Message) ([]Message, error) {
 			msg.DestID = i
 			msg.Mtype = Vote
 			if i == osv.id {
-				newmsgs := osv.Loop(msg)
-				msgs = append(msgs, newmsgs...)
+				newMsgs := osv.Loop(msg)
+				msgs = append(msgs, newMsgs...)
 			} else {
 				msgs = append(msgs, msg)
 			}
@@ -134,8 +142,8 @@ func (osv *OSV) Recv(m Message) ([]Message, error) {
 			msg.DestID = i
 			msg.Mtype = Vote
 			if i == osv.id {
-				newmsgs := osv.Loop(msg)
-				msgs = append(msgs, newmsgs...)
+				newMsgs := osv.Loop(msg)
+				msgs = append(msgs, newMsgs...)
 			} else {
 				msgs = append(msgs, msg)
 			}
@@ -147,8 +155,8 @@ func (osv *OSV) Recv(m Message) ([]Message, error) {
 		if osv.done == false {
 			osv.done = true
 			osv.OutPut <- true
+			log.Printf("[node %v] output %v", osv.id, osv.done)
 		}
-		//log.Printf("[node %v] output %v", osv.id, osv.done)
 		return nil, nil
 	}
 	return nil, nil

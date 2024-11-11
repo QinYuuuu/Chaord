@@ -1,6 +1,8 @@
 package abvss
 
 import (
+	"Chaord/internal/osv"
+	"Chaord/pkg/protobuf"
 	"Chaord/pkg/utils/polynomial"
 	"errors"
 	"go.dedis.ch/kyber/v4"
@@ -11,24 +13,27 @@ import (
 )
 
 type ABVSS struct {
-	instanceid int
-	nodeid     int
+	instanceID int
+	nodeID     int
 	degree     int
-	nodenum    int
+	nodeNum    int
 	p          *big.Int
-	batchsize  int
-	vnum       int
+	batchSize  int
+	vNum       int
 	curve      kyber.Group
 	*Distributor
 	*Receiver
 	*Verifier
+	*Service
+
+	osv *osv.Node
 }
 
 func (vss *ABVSS) GetNodeID() int {
-	return vss.nodeid
+	return vss.nodeID
 }
 func (vss *ABVSS) GetInstanceID() int {
-	return vss.instanceid
+	return vss.instanceID
 }
 
 type Distributor struct {
@@ -56,17 +61,18 @@ type Receiver struct {
 
 type Verifier struct {
 	count   int
-	shareCh chan struct {
-		index int
-		lcm   []*big.Int
-	}
-	ilist []struct {
-		index int
-		lcm   []*big.Int
-	}
-	jlist []int
-	done  bool
-	Ready chan bool
+	shareCh chan LcmTuple
+	ilist   []LcmTuple
+	jlist   []int
+	done    bool
+	Ready   chan bool
+}
+
+type Service struct {
+	DealerBandwidthUsage int
+	BandwidthUsage       int
+	ReceiveChan          chan *protobuf.Message
+	SendChan             []chan *protobuf.Message
 }
 
 func NewVSS(index, nodeid, nodenum, degree, batchsize, vnum int, p *big.Int, flag int) (*ABVSS, error) {
@@ -74,7 +80,7 @@ func NewVSS(index, nodeid, nodenum, degree, batchsize, vnum int, p *big.Int, fla
 		return nil, errors.New("n must satisfy n >= 3f+1")
 	}
 	if batchsize <= 0 || vnum <= 0 {
-		return nil, errors.New("batchsize and vnum must >= 1")
+		return nil, errors.New("batchSize and vNum must >= 1")
 	}
 	var curve kyber.Group
 	if flag == 1 {
@@ -83,17 +89,17 @@ func NewVSS(index, nodeid, nodenum, degree, batchsize, vnum int, p *big.Int, fla
 		curve = circl.NewSuiteBLS12381()
 	}*/
 	return &ABVSS{
-		instanceid: index,
-		nodeid:     nodeid,
+		instanceID: index,
+		nodeID:     nodeid,
 		degree:     degree,
-		nodenum:    nodenum,
+		nodeNum:    nodenum,
 		p:          p,
-		batchsize:  batchsize,
-		vnum:       vnum,
+		batchSize:  batchsize,
+		vNum:       vnum,
 		curve:      curve,
 	}, nil
 }
 
 func (vss *ABVSS) GetN() int {
-	return vss.nodenum
+	return vss.nodeNum
 }

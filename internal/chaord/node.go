@@ -1,8 +1,8 @@
-package internal
+package chaord
 
 import (
 	"Chaord/pkg/crypto/commit/merkle"
-	"crypto/hasher"
+	"crypto/md5"
 	"math/big"
 	"strconv"
 )
@@ -31,7 +31,8 @@ func (n *Node) step2() {
 	bigD := new(big.Int).SetInt64(int64(n.scale))
 	for i := 0; i < int(N); i++ {
 		content := append(pi, []byte(strconv.Itoa(i))...)
-		index := new(big.Int).Mod(new(big.Int).SetBytes(hasher.MD5Hasher(content)), bigD)
+		hasher := md5.New()
+		index := new(big.Int).Mod(new(big.Int).SetBytes(hasher.Sum(content)), bigD)
 		flag[index.Int64()] = 1
 	}
 }

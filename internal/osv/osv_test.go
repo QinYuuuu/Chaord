@@ -8,25 +8,19 @@ import (
 
 func TestOSV_Init(t *testing.T) {
 	n := 4
-	tnum := 1
-	msgchans := make([]chan Message, n)
-	osvs := make([]*OSV, n)
+	tNum := 1
+	osv := make([]*Node, n)
 	for i := 0; i < n; i++ {
-		osvs[i] = NewOSV(n, tnum, i)
-		msgchans[i] = make(chan Message)
+		osv[i] = NewOSV(n, tNum, i)
 		go func(i int) {
-			msgs := osvs[i].Init()
-			fmt.Println(msgs)
-			for _, msg := range msgs {
-				msgchans[msg.Dest()] <- msg
-			}
+			osv[i].Init()
 		}(i)
 	}
 	var wait sync.WaitGroup
-	wait.Add(n * n)
+	wait.Add(n * (n - 1))
 	for i := 0; i < n; i++ {
 		go func(i int) {
-			for msg := range msgchans[i] {
+			for msg := range osv[i].SendChan {
 				fmt.Printf("message from %v to %v %v\n", msg.From(), msg.Dest(), msg.Type())
 				wait.Done()
 			}
@@ -35,53 +29,46 @@ func TestOSV_Init(t *testing.T) {
 	wait.Wait()
 }
 
+func routeLocal(osv []*Node) {
+	for i := range osv {
+		go func(i int) {
+			for {
+				msg := <-osv[i].SendChan
+				osv[msg.DestID].ReceiveChan <- msg
+			}
+		}(i)
+	}
+}
+
 func TestOSV_Recv(t *testing.T) {
 	n := 4
-	tnum := 1
-	msgchans := make([]chan Message, n)
-	ch := make(chan Message)
-	osvs := make([]*OSV, n)
+	tNum := 1
+	osv := make([]*Node, n)
+	for i := 0; i < n; i++ {
+		osv[i] = NewOSV(n, tNum, i)
+	}
+	go func() {
+		for i := 0; i < n-1; i++ {
+			go func(i int) {
+				osv[i].Init()
+			}(i)
+		}
+	}()
+	go routeLocal(osv)
+	go func() {
+		for i := 0; i < n; i++ {
+			go func(i int) {
+				osv[i].Run()
+			}(i)
+		}
+	}()
 	var wait sync.WaitGroup
 	wait.Add(n)
 	for i := 0; i < n; i++ {
-		osvs[i] = NewOSV(n, tnum, i)
-		msgchans[i] = make(chan Message, 10)
 		go func(i int) {
-			msgs := osvs[i].Init()
-			fmt.Println(msgs)
-			for _, msg := range msgs {
-				msgchans[msg.Dest()] <- msg
-			}
-			fmt.Println("Init done")
+			<-osv[i].OutPut
 			wait.Done()
 		}(i)
 	}
-	//msgs := make([][]Message, n)
-	wait.Wait()
-
-	wait.Add(n)
-	for i := 0; i < n; i++ {
-		go func(i int) {
-			for msg := range msgchans[i] {
-				//fmt.Printf("message from %v to %v %v\n", msg.From(), msg.Dest(), msg.Type())
-				replymsgs, err := osvs[i].Recv(msg)
-				if err != nil {
-					fmt.Printf("recv err: %v", err)
-				}
-				for _, replymsg := range replymsgs {
-					ch <- replymsg
-				}
-				if osvs[i].Done() {
-					wait.Done()
-				}
-			}
-		}(i)
-	}
-	go func() {
-		for replymsg := range ch {
-			msgchans[replymsg.Dest()] <- replymsg
-			fmt.Printf("out message %v\n", replymsg)
-		}
-	}()
 	wait.Wait()
 }
