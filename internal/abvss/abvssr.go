@@ -17,19 +17,19 @@ const ReceiverRandSeed = 10
 func (vss *ABVSS) ReceiverInit(sk kyber.Scalar) {
 	vss.Receiver = &Receiver{
 		sk:           sk,
-		fshares:      make([]*big.Int, vss.batchSize),
-		gshares:      make([]*big.Int, vss.vNum),
+		fShares:      make([]*big.Int, vss.batchSize),
+		gShares:      make([]*big.Int, vss.vNum),
 		xix:          make([][]kyber.Point, vss.nodeNum),
 		xiy:          make([][]kyber.Point, vss.nodeNum),
 		zix:          make([][]kyber.Point, vss.nodeNum),
 		ziy:          make([][]kyber.Point, vss.nodeNum),
 		Received:     make(chan bool),
-		randombeacon: rand.New(rand.NewSource(ReceiverRandSeed)),
+		randomBeacon: rand.New(rand.NewSource(ReceiverRandSeed)),
 	}
 }
 
 func (vss *ABVSS) GetShares() ([]*big.Int, []*big.Int) {
-	return vss.fshares, vss.gshares
+	return vss.fShares, vss.gShares
 }
 
 func (vss *ABVSS) ObtainShares(zix, ziy, xix, xiy []kyber.Point, index int) error {
@@ -54,11 +54,11 @@ func (vss *ABVSS) ObtainShares(zix, ziy, xix, xiy []kyber.Point, index int) erro
 				/*
 					log.Printf("wrong zi %v", zi[i])
 					return errors.Join(errors.New("decrypt zi failed"), err)*/
-				vss.fshares[i] = utils.RandomNum(vss.p)
+				vss.fShares[i] = utils.RandomNum(vss.p)
 			} else {
-				vss.fshares[i] = new(big.Int).SetBytes(tmp)
+				vss.fShares[i] = new(big.Int).SetBytes(tmp)
 			}
-			log.Printf("vss.fshares[i] %v", vss.fshares[i])
+			log.Printf("vss.fShares[i] %v", vss.fShares[i])
 		}
 		for i := 0; i < vss.vNum; i++ {
 
@@ -68,11 +68,11 @@ func (vss *ABVSS) ObtainShares(zix, ziy, xix, xiy []kyber.Point, index int) erro
 				/*
 					log.Printf("wrong xi %v", xi[i])
 					return errors.Join(errors.New("decrypt xi failed"), err)*/
-				vss.gshares[i] = utils.RandomNum(vss.p)
+				vss.gShares[i] = utils.RandomNum(vss.p)
 			} else {
-				vss.gshares[i] = new(big.Int).SetBytes(tmp)
+				vss.gShares[i] = new(big.Int).SetBytes(tmp)
 			}
-			//vss.gshares[i] = xi[i]
+			//vss.gShares[i] = xi[i]
 		}
 		vss.Received <- true
 	}
@@ -88,18 +88,18 @@ func (vss *ABVSS) ConstructLCM() (LcmTuple, error) {
 	for i := 0; i < vss.vNum; i++ {
 		r[i] = make([]*big.Int, vss.batchSize)
 		for j := 0; j < vss.batchSize; j++ {
-			r[i][j] = new(big.Int).Mod(new(big.Int).SetInt64(vss.randombeacon.Int63()), vss.p)
+			r[i][j] = new(big.Int).Mod(new(big.Int).SetInt64(vss.randomBeacon.Int63()), vss.p)
 			//fmt.Printf("%v %v %v\n", i, j, r[i][j])
 		}
 	}
 	for i := 0; i < vss.vNum; i++ {
 		//fmt.Println(r[i])
-		tmp, err := utils.DotProduct(vss.fshares, r[i])
-		//fmt.Printf("node %v get fshares %v\n", vss.nodeID, vss.fshares)
+		tmp, err := utils.DotProduct(vss.fShares, r[i])
+		//fmt.Printf("node %v get fShares %v\n", vss.nodeID, vss.fShares)
 		if err != nil {
 			return LcmTuple{}, err
 		}
-		lcm[i] = new(big.Int).Mod(new(big.Int).Add(tmp, vss.gshares[i]), vss.p)
+		lcm[i] = new(big.Int).Mod(new(big.Int).Add(tmp, vss.gShares[i]), vss.p)
 		//fmt.Printf("node %v %v li:%v\n", vss.nodeID, i, lcm[i])
 	}
 	tuple := LcmTuple{
@@ -171,7 +171,7 @@ func (vss *ABVSS) ShareRecovery() error {
 		if err != nil {
 			return err
 		}
-		vss.fshares[i] = f.EvalMod(new(big.Int).SetInt64(int64(vss.nodeID)), vss.p)
+		vss.fShares[i] = f.EvalMod(new(big.Int).SetInt64(int64(vss.nodeID)), vss.p)
 	}
 	return nil
 }

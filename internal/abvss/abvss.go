@@ -50,9 +50,9 @@ type Receiver struct {
 	ziy          [][]kyber.Point
 	xix          [][]kyber.Point
 	xiy          [][]kyber.Point
-	fshares      []*big.Int
-	gshares      []*big.Int
-	randombeacon *rand.Rand
+	fShares      []*big.Int
+	gShares      []*big.Int
+	randomBeacon *rand.Rand
 	r            [][]*big.Int
 	Received     chan bool
 	complain     bool

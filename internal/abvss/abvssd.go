@@ -51,6 +51,23 @@ func (vss *ABVSS) SamplePoly() error {
 	return nil
 }
 
+func (vss *ABVSS) GenerateRawShares(index int) ([]*big.Int, []*big.Int, error) {
+	if vss.Distributor == nil {
+		return nil, nil, errors.New("not a distributor")
+	}
+	fShares := make([]*big.Int, vss.batchSize)
+	gShares := make([]*big.Int, vss.batchSize)
+	for i := 0; i < vss.batchSize; i++ {
+		fi := vss.polyf[i].EvalMod(new(big.Int).SetInt64(int64(index+1)), vss.p)
+		fShares[i] = fi
+	}
+	for i := 0; i < vss.vNum; i++ {
+		gi := vss.polyg[i].EvalMod(new(big.Int).SetInt64(int64(index+1)), vss.p)
+		gShares[i] = gi
+	}
+	return fShares, gShares, nil
+}
+
 func (vss *ABVSS) GenerateShares(index int) ([]kyber.Point, []kyber.Point, []kyber.Point, []kyber.Point, error) {
 	if vss.Distributor == nil {
 		return nil, nil, nil, nil, errors.New("not a distributor")
