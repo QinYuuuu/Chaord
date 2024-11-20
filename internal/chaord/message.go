@@ -1,5 +1,7 @@
 package chaord
 
+// not used in local test
+
 type FlagMsg struct {
 	FromID int
 	Flag   []bool

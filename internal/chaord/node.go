@@ -3,6 +3,7 @@ package chaord
 import (
 	"Chaord/internal/osv"
 	"Chaord/pkg/crypto/commit/merkle"
+	"Chaord/pkg/utils/polynomial"
 	"bytes"
 	"crypto/md5"
 	"math/big"
@@ -11,10 +12,14 @@ import (
 )
 
 type Node struct {
+	nodeNum    int
+	degree     int
 	dataScale  int
 	percentage float64
-	rChan      chan merkle.Root
-	r1Chan     chan merkle.Root
+
+	p      *big.Int
+	rChan  chan merkle.Root
+	r1Chan chan merkle.Root
 
 	bHatChan chan []*big.Int
 	pHatChan chan []merkle.Witness
@@ -76,15 +81,90 @@ func (n *Node) step4() {
 
 }
 
-func (n *Node) batchDDG() {
-	// invoke verify s^2 - s = 0
+func shareSecret(secret, n, t int, p *big.Int) []*big.Int {
+	poly, _ := polynomial.New(t)
+	poly.Rand(p)
+	err := poly.SetCoefficient(0, int64(secret))
+	if err != nil {
+		return nil
+	}
+	shares := make([]*big.Int, n)
+	for i := 0; i < n; i++ {
+		shares[i] = poly.EvalMod(new(big.Int).SetInt64(int64(i+1)), p)
+	}
+	return shares
 }
 
-func (n *Node) ODOLocal() {
+func shareSecretBig(secret *big.Int, n, t int, p *big.Int) []*big.Int {
+	poly, _ := polynomial.New(t)
+	poly.Rand(p)
+	err := poly.SetCoefficientBig(0, secret)
+	if err != nil {
+		return nil
+	}
+	shares := make([]*big.Int, n)
+	for i := 0; i < n; i++ {
+		shares[i] = poly.EvalMod(new(big.Int).SetInt64(int64(i+1)), p)
+	}
+	return shares
+}
+
+func reconstruct(x, y []*big.Int, p *big.Int) *big.Int {
+	poly, err := polynomial.LagrangeInterpolation(x, y, p)
+	if err != nil {
+		return nil
+	}
+	s, _ := poly.GetCoefficient(0)
+	return s
+}
+
+func (n *Node) batchDDGOffline() ([]*big.Int, []*big.Int, []*big.Int) {
+	// generate R and R^2 share
+	R := rand.Int() % 2
+	RShares := shareSecret(R, n.nodeNum, n.degree, n.p)
+	R2Shares := shareSecret(R*R, n.nodeNum, n.degree, n.p)
+	// coin shares
+	coinShares := shareSecret(n.random.Int(), n.nodeNum, n.degree, n.p)
+	return RShares, R2Shares, coinShares
+}
+
+func (n *Node) mpcStep1(boShares, rShares []*big.Int) []*big.Int {
+	// verify s^2 - s = 0
+	boAddR := new(big.Int).Mod(new(big.Int).Add(boShares[1], rShares[1]), n.p)
+	boAddRSquare := new(big.Int).Mul(boAddR, boAddR)
+	return shareSecretBig(boAddRSquare, n.nodeNum, n.degree, n.p)
+}
+
+func (n *Node) mpcStep2(index, boAddRSquareShares []*big.Int) *big.Int {
+	return reconstruct(index, boAddRSquareShares, n.p)
+}
+
+func (n *Node) batchDDGStep2(x, y []*big.Int) {
+	// reconstruct s_c
+	reconstruct(x, y, new(big.Int).SetInt64(2))
+	//
+}
+
+func (n *Node) odoLocal() {
 	// generate shares of s and s^2
+	for i := 0; i < n.dataScale; i++ {
+		poly, _ := polynomial.New(n.degree)
+		poly.SetCoefficient(0, 0)
+	}
+	RShares := make([]*big.Int, n.dataScale)
+	bBias := make([]int, n.dataScale)
+	boShares := make([]*big.Int, n.dataScale)
+	for i := 0; i < n.dataScale; i++ {
+		bBias[i] = rand.Int() % 2
+	}
+	bo_add_R_shares := make([]*big.Int, n.dataScale)
+	for i := 0; i < n.dataScale; i++ {
+		bo_add_R_shares[i] = new(big.Int).Add(boShares[i], RShares[i])
 
+	}
 }
 
+// Run start node
 func (n *Node) Run() {
 
 }

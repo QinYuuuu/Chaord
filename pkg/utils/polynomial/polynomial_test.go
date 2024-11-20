@@ -14,10 +14,10 @@ func TestNew(t *testing.T) {
 	poly, err := New(degree)
 
 	assert.Nil(t, err, "error in New")
-	assert.Equal(t, degree+1, len(poly.coeff), "coeff len")
+	assert.Equal(t, degree+1, len(poly.coef), "coef len")
 
-	for i := 0; i < len(poly.coeff); i++ {
-		assert.Zero(t, poly.coeff[i].Cmp(ZERO))
+	for i := 0; i < len(poly.coef); i++ {
+		assert.Zero(t, poly.coef[i].Cmp(ZERO))
 	}
 
 	_, err = New(-1)
@@ -30,16 +30,16 @@ func TestNewOne(t *testing.T) {
 	onePoly := NewOne()
 
 	assert.Equal(t, 0, onePoly.GetDegree(), "degree")
-	assert.Equal(t, 1, len(onePoly.coeff), "coeff len")
+	assert.Equal(t, 1, len(onePoly.coef), "coef len")
 
-	assert.Equal(t, 0, ONE.Cmp(onePoly.coeff[0]))
+	assert.Equal(t, 0, ONE.Cmp(onePoly.coef[0]))
 }
 
 func TestNewEmpty(t *testing.T) {
 	emptyPoly := NewEmpty()
 
 	assert.Equal(t, 0, emptyPoly.GetDegree(), "degree")
-	assert.Equal(t, int64(0), emptyPoly.coeff[0].Int64(), "const")
+	assert.Equal(t, int64(0), emptyPoly.coef[0].Int64(), "const")
 }
 
 func TestNewRand(t *testing.T) {
@@ -49,10 +49,10 @@ func TestNewRand(t *testing.T) {
 	poly, err := NewRand(degree, n)
 	assert.Nil(t, err, "err in NewRand")
 
-	assert.Equal(t, degree+1, len(poly.coeff), "coeff len")
+	assert.Equal(t, degree+1, len(poly.coef), "coef len")
 
-	for i := range poly.coeff {
-		assert.Equal(t, -1, poly.coeff[i].Cmp(n), "rand range")
+	for i := range poly.coef {
+		assert.Equal(t, -1, poly.coef[i].Cmp(n), "rand range")
 	}
 }
 
@@ -81,8 +81,8 @@ func TestPolynomial_Add(t *testing.T) {
 
 	var tmp = big.NewInt(0)
 	for i := 0; i <= degree; i++ {
-		tmp.Add(poly1.coeff[i], poly2.coeff[i])
-		assert.Zero(t, result.coeff[i].Cmp(tmp), "add result")
+		tmp.Add(poly1.coef[i], poly2.coef[i])
+		assert.Zero(t, result.coef[i].Cmp(tmp), "add result")
 		tmp.SetInt64(0)
 	}
 }

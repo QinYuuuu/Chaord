@@ -3,13 +3,15 @@ package chaord
 import (
 	"Chaord/internal/reedsolomonP"
 	"Chaord/pkg/crypto/commit/merkle"
+	"math/rand"
 
 	"hash"
 	"math/big"
 )
 
 type Consumer struct {
-	n           int
+	nodeNum     int
+	degree      int
 	dataScale   int
 	sampleScale int
 	b           []*big.Int
@@ -22,7 +24,7 @@ type Consumer struct {
 
 func NewConsumer(n, dataScale int, sampleScale int) *Consumer {
 	return &Consumer{
-		n:           n,
+		nodeNum:     n,
 		dataScale:   dataScale,
 		sampleScale: sampleScale,
 		cHatChan:    make(chan CHatMsg, n),
@@ -86,6 +88,12 @@ func (c *Consumer) step3() {
 	}
 }
 
-func (c *Consumer) batchDDG() {
+func (c *Consumer) batchDDGInit() [][]*big.Int {
 	// share secrets on Z2
+	bcShares := make([][]*big.Int, c.dataScale)
+	for i := 0; i < c.dataScale; i++ {
+		s := rand.Int() % 2
+		bcShares[i] = shareSecret(s, c.nodeNum, c.degree, new(big.Int).SetInt64(2))
+	}
+	return bcShares
 }

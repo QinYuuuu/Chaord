@@ -39,8 +39,8 @@ func (vss *ABVSS) GetInstanceID() int {
 type Distributor struct {
 	pk     []kyber.Point
 	secret []*big.Int
-	polyf  []polynomial.Polynomial
-	polyg  []polynomial.Polynomial
+	polyf  []*polynomial.Polynomial
+	polyg  []*polynomial.Polynomial
 	//shares [][]*big.Int
 }
 

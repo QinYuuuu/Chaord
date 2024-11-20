@@ -41,7 +41,7 @@ func (vss *ABVSS) Receive() {
 					_ = xix[i].UnmarshalBinary(xixBytes[i])
 					_ = xiy[i].UnmarshalBinary(xiyBytes[i])
 				}
-				err := vss.ObtainShares(zix, ziy, xix, xiy, int(newmsg.GetIndex()))
+				err := vss.obtainShares(zix, ziy, xix, xiy, int(newmsg.GetIndex()))
 				if err != nil {
 					log.Printf("node %v receive shares from node %v error: %v", vss.GetNodeID(), newmsg.GetFromID(), err)
 				}
@@ -49,7 +49,7 @@ func (vss *ABVSS) Receive() {
 			}
 			if msgType == "LCM" {
 				newmsg := core.Decapsulation(msgType, msg).(*protobuf.LCMMsg)
-				vss.ReceiveLCM(newmsg)
+				vss.receiveLCM(newmsg)
 			}
 			if msgType == "SK" {
 
@@ -59,33 +59,33 @@ func (vss *ABVSS) Receive() {
 	}
 }
 
-func (vss *ABVSS) ReceiveLCM(lcmmsg *protobuf.LCMMsg) {
-	lcmBytes := lcmmsg.GetLcmi()
+func (vss *ABVSS) receiveLCM(lcmMsg *protobuf.LCMMsg) {
+	lcmBytes := lcmMsg.GetLcmi()
 	lcm := make([]*big.Int, len(lcmBytes))
 	for i := range lcmBytes {
 		lcm[i] = new(big.Int).SetBytes(lcmBytes[i])
 	}
 	tuple := LcmTuple{
-		index: int(lcmmsg.GetFromID()),
+		index: int(lcmMsg.GetFromID()),
 		lcm:   lcm,
 	}
 	vss.shareCh <- tuple
-	//log.Printf("node %v receive lcm from node %v", vss.GetNodeID(), lcmmsg.FromID)
+	//log.Printf("node %v receive lcm from node %v", vss.GetNodeID(), lcmMsg.FromID)
 	return
 }
 
-func (vss *ABVSS) SecretSharing(pk []kyber.Point, s []*big.Int) {
+func (vss *ABVSS) secretSharing(pk []kyber.Point, s []*big.Int) {
 	err := vss.DistributorInit(pk, s)
 	if err != nil {
 		log.Printf("init error: %v", err)
 	}
-	err = vss.SamplePoly()
+	err = vss.samplePoly()
 	if err != nil {
 		log.Printf("sample poly error: %v", err)
 	}
 	for i := 0; i < vss.nodeNum; i++ {
 		go func(i int) {
-			zix, ziy, xix, xiy, err := vss.GenerateShares(i)
+			zix, ziy, xix, xiy, err := vss.generateEncShares(i)
 			if err != nil {
 				log.Printf("generate shares error: %v", err)
 			}
@@ -117,7 +117,7 @@ func (vss *ABVSS) SecretSharing(pk []kyber.Point, s []*big.Int) {
 			//defer cancel()
 			for j := 0; j < vss.nodeNum; j++ {
 				if j == vss.nodeID {
-					err := vss.ObtainShares(zix, ziy, xix, xiy, i)
+					err := vss.obtainShares(zix, ziy, xix, xiy, i)
 					if err != nil {
 						log.Printf("obtain shares error: %v", err)
 					}
@@ -131,8 +131,8 @@ func (vss *ABVSS) SecretSharing(pk []kyber.Point, s []*big.Int) {
 	}
 }
 
-func (vss *ABVSS) BroadcastLCM() {
-	tuple, err := vss.ConstructLCM()
+func (vss *ABVSS) broadcastLCM() {
+	tuple, err := vss.constructLCM()
 	if err != nil {
 		log.Printf("construct lcm error: %v", err)
 	}

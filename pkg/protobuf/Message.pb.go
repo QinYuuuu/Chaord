@@ -1641,22 +1641,22 @@ var file_Message_proto_goTypes = []interface{}{
 var file_Message_proto_depIdxs = []int32{
 	23, // 0: Help.shardAndProof:type_name -> Help.ShardAndProof
 	18, // 1: ABVSS.ReceiveShares:input_type -> SharesMsg
-	19, // 2: ABVSS.ReceiveLCM:input_type -> LCMMsg
+	19, // 2: ABVSS.receiveLCM:input_type -> LCMMsg
 	20, // 3: ABVSS.ReconstructLCM:input_type -> SKMsg
 	20, // 4: ABVSS.ReceiveRecShares:input_type -> SKMsg
 	18, // 5: ABDKG.ReceiveShares:input_type -> SharesMsg
-	19, // 6: ABDKG.ReceiveLCM:input_type -> LCMMsg
+	19, // 6: ABDKG.receiveLCM:input_type -> LCMMsg
 	20, // 7: ABDKG.ReconstructLCM:input_type -> SKMsg
 	20, // 8: ABDKG.ReceiveRecShares:input_type -> SKMsg
 	21, // 9: ABDKG.ReceiveOSV:input_type -> OSVMsg
 	21, // 10: Node.Receive:input_type -> OSVMsg
 	0,  // 11: Conn.Receive:input_type -> TestHelloMessage
 	22, // 12: ABVSS.ReceiveShares:output_type -> AckMsg
-	22, // 13: ABVSS.ReceiveLCM:output_type -> AckMsg
+	22, // 13: ABVSS.receiveLCM:output_type -> AckMsg
 	22, // 14: ABVSS.ReconstructLCM:output_type -> AckMsg
 	22, // 15: ABVSS.ReceiveRecShares:output_type -> AckMsg
 	22, // 16: ABDKG.ReceiveShares:output_type -> AckMsg
-	22, // 17: ABDKG.ReceiveLCM:output_type -> AckMsg
+	22, // 17: ABDKG.receiveLCM:output_type -> AckMsg
 	22, // 18: ABDKG.ReconstructLCM:output_type -> AckMsg
 	22, // 19: ABDKG.ReceiveRecShares:output_type -> AckMsg
 	22, // 20: ABDKG.ReceiveOSV:output_type -> AckMsg

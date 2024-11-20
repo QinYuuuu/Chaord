@@ -8,30 +8,39 @@ import (
 )
 
 type Owner struct {
-	n           int
+	nodeNum     int
+	degree      int
 	dataScale   int
 	sampleScale int
-	flagChan    chan FlagMsg
-	bfChan      chan BFMsg
+
 	data        []*big.Int
+	p           *big.Int
 	b           []*big.Int
-	p           []merkle.Witness
+	merkleProof []merkle.Witness
 
 	// in BatchDDG
 	batchCSS *abvss.ABVSS
+
+	// async
+	flagChan chan FlagMsg
+	bfChan   chan BFMsg
 }
 
-func NewOwner(n, dataScale, sampleScale int) *Owner {
-	return &Owner{
-		n:           n,
+func NewOwner(nodeNum, degree, dataScale, sampleScale int, async bool) *Owner {
+	owner := &Owner{
+		nodeNum:     nodeNum,
 		dataScale:   dataScale,
 		sampleScale: sampleScale,
-		flagChan:    make(chan FlagMsg, n),
-		bfChan:      make(chan BFMsg),
+
 		data:        make([]*big.Int, dataScale),
 		b:           make([]*big.Int, dataScale),
-		p:           make([]merkle.Witness, dataScale),
+		merkleProof: make([]merkle.Witness, dataScale),
 	}
+	if async {
+		owner.flagChan = make(chan FlagMsg, nodeNum)
+		owner.bfChan = make(chan BFMsg)
+	}
+	return owner
 }
 
 func (owner *Owner) step1() {
@@ -48,7 +57,7 @@ func (owner *Owner) step2() {
 	for i := 0; i < owner.dataScale; i++ {
 		if flag.Flag[i] {
 			bHat[i] = owner.b[i]
-			pHat[i] = owner.p[i]
+			pHat[i] = owner.merkleProof[i]
 		} else {
 			bHat[i] = new(big.Int).SetInt64(0)
 			pHat[i] = merkle.Witness{}
@@ -69,17 +78,12 @@ func (owner *Owner) step3() {
 	}
 }
 
-func (owner *Owner) batchDDG() {
-	s := make([]*big.Int, owner.dataScale)
-	// share s
-	err := owner.batchCSS.DistributorInit(nil, s)
-	if err != nil {
-		return
+func (owner *Owner) batchDDGInit() [][]*big.Int {
+	// share secrets on Zp
+	boShares := make([][]*big.Int, owner.dataScale)
+	for i := 0; i < owner.dataScale; i++ {
+		s := rand.Int() % 2
+		boShares[i] = shareSecret(s, owner.nodeNum, owner.degree, owner.p)
 	}
-	for i := 0; i < owner.n; i++ {
-		fshares, _, err := owner.batchCSS.GenerateRawShares(i)
-		if err != nil {
-			return
-		}
-	}
+	return boShares
 }

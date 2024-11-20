@@ -147,6 +147,6 @@ func LagrangeInterpolation(x, y []*big.Int, R *big.Int) (Polynomial, error) {
 		}
 		p = polynomialAdd(p, polynomialMulByConstant(jPol, y[j], R), R)
 	}
-	result := Polynomial{coeff: p}
+	result := Polynomial{coef: p}
 	return result, nil
 }

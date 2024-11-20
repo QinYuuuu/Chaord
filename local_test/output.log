@@ -1,0 +1,32 @@
+2024-11-18 15:21:45,572 - INFO - =====================================================
+2024-11-18 15:21:45,572 - INFO - setting: node number-31, threshold-10, distribution parameter-500, data scale-3072, var-4.0, mean-0.0, order-256bit
+2024-11-20 10:51:00,218 - INFO - =====================================================
+2024-11-20 10:51:00,219 - INFO - setting: node number-31, threshold-10, distribution parameter-500, data scale-3072, var-4.0, mean-0.0, order-256bit
+2024-11-20 12:36:44,321 - INFO - ======================== ODO ========================
+2024-11-20 12:36:44,321 - INFO - mean_standard: 0.0
+2024-11-20 12:36:44,321 - INFO - variance_standard: 4.0
+2024-11-20 12:36:44,321 - INFO - mean_gen_normalize: 2.3659
+2024-11-20 12:36:44,721 - INFO - variance_gen_normalize: 4.2103
+2024-11-20 12:36:44,721 - INFO - parameters: 31 nodes, threshold 10, distribution parameter 500
+2024-11-20 12:36:44,721 - INFO - -------- average runtime -------
+2024-11-20 12:36:44,721 - INFO - node-online: 585.3954685341206 ms
+2024-11-20 12:36:44,722 - INFO - node-offline: 203.62732572210652 ms
+2024-11-20 12:36:44,722 - INFO - -------- total runtime for 3072 samples --------
+2024-11-20 12:36:44,722 - INFO - node-online: 1798334.8793368186 ms
+2024-11-20 12:36:44,722 - INFO - node-offline: 625543.1446183112 ms
+2024-11-20 12:36:44,722 - INFO - ======================= data trading ====================
+2024-11-20 12:36:44,722 - INFO - mean_standard: 0.0
+2024-11-20 12:36:44,722 - INFO - variance_standard: 4.0
+2024-11-20 12:36:44,723 - INFO - mean_gen_normalize: -0.0643
+2024-11-20 12:36:44,723 - INFO - variance_gen_normalize: 4.0267
+2024-11-20 12:36:44,723 - INFO - parameters: 31 nodes, threshold 10, distribution parameter 500
+2024-11-20 12:36:44,723 - INFO - -------- average runtime --------
+2024-11-20 12:36:44,723 - INFO - consumer: 0.1986591766277949 ms
+2024-11-20 12:36:44,724 - INFO - owner: 0.41691089669863385 ms
+2024-11-20 12:36:44,724 - INFO - node-online: 1.3359180696669124 ms
+2024-11-20 12:36:44,724 - INFO - node-offline: 185.11431928854236 ms
+2024-11-20 12:36:44,724 - INFO - -------- total runtime for 3072 samples --------
+2024-11-20 12:36:44,724 - INFO - consumer: 610.2809906005859 ms
+2024-11-20 12:36:44,725 - INFO - owner: 1280.7502746582031 ms
+2024-11-20 12:36:44,725 - INFO - node-online: 4103.940310016755 ms
+2024-11-20 12:36:44,725 - INFO - node-offline: 568671.1888544022 ms

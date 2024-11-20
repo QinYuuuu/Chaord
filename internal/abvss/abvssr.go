@@ -32,7 +32,7 @@ func (vss *ABVSS) GetShares() ([]*big.Int, []*big.Int) {
 	return vss.fShares, vss.gShares
 }
 
-func (vss *ABVSS) ObtainShares(zix, ziy, xix, xiy []kyber.Point, index int) error {
+func (vss *ABVSS) obtainShares(zix, ziy, xix, xiy []kyber.Point, index int) error {
 	if vss.Receiver == nil {
 		return errors.New("not a receiver")
 	}
@@ -79,7 +79,7 @@ func (vss *ABVSS) ObtainShares(zix, ziy, xix, xiy []kyber.Point, index int) erro
 	return nil
 }
 
-func (vss *ABVSS) ConstructLCM() (LcmTuple, error) {
+func (vss *ABVSS) constructLCM() (LcmTuple, error) {
 	if vss.Receiver == nil {
 		return LcmTuple{}, errors.New("not a receiver")
 	}
@@ -109,7 +109,7 @@ func (vss *ABVSS) ConstructLCM() (LcmTuple, error) {
 	return tuple, nil
 }
 
-func (vss *ABVSS) GetRecoverShares(sk kyber.Scalar, index int, r [][]*big.Int) error {
+func (vss *ABVSS) getRecoverShares(sk kyber.Scalar, index int, r [][]*big.Int) error {
 	fj := make([]*big.Int, vss.batchSize)
 	for i := 0; i < vss.batchSize; i++ {
 		tmp, err := elgamal.Decrypt(vss.curve, sk, vss.zix[index][i], vss.ziy[index][i])
@@ -140,17 +140,17 @@ func (vss *ABVSS) GetRecoverShares(sk kyber.Scalar, index int, r [][]*big.Int) e
 	return nil
 }
 
-func (vss *ABVSS) Complain() error {
+func (vss *ABVSS) sendComplain() error {
 
 	return errors.New("do not need to complain")
 }
 
-func (vss *ABVSS) HandleComplain(sk kyber.Scalar, index int) error {
+func (vss *ABVSS) handleComplain(sk kyber.Scalar, index int) error {
 
 	return errors.New("do not need to complain")
 }
 
-func (vss *ABVSS) ShareRecovery() error {
+func (vss *ABVSS) shareRecovery() error {
 	if vss.Receiver == nil {
 		return errors.New("not a receiver")
 	}

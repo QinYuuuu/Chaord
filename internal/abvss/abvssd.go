@@ -20,13 +20,13 @@ func (vss *ABVSS) DistributorInit(pk []kyber.Point, s []*big.Int) error {
 	vss.Distributor = &Distributor{
 		pk:     pk,
 		secret: s,
-		polyf:  make([]polynomial.Polynomial, vss.batchSize),
-		polyg:  make([]polynomial.Polynomial, vss.vNum),
+		polyf:  make([]*polynomial.Polynomial, vss.batchSize),
+		polyg:  make([]*polynomial.Polynomial, vss.vNum),
 	}
 	return nil
 }
 
-func (vss *ABVSS) SamplePoly() error {
+func (vss *ABVSS) samplePoly() error {
 	if vss.Distributor == nil {
 		return errors.New("not a distributor")
 	}
@@ -51,7 +51,7 @@ func (vss *ABVSS) SamplePoly() error {
 	return nil
 }
 
-func (vss *ABVSS) GenerateRawShares(index int) ([]*big.Int, []*big.Int, error) {
+func (vss *ABVSS) generateRawShares(index int) ([]*big.Int, []*big.Int, error) {
 	if vss.Distributor == nil {
 		return nil, nil, errors.New("not a distributor")
 	}
@@ -68,7 +68,7 @@ func (vss *ABVSS) GenerateRawShares(index int) ([]*big.Int, []*big.Int, error) {
 	return fShares, gShares, nil
 }
 
-func (vss *ABVSS) GenerateShares(index int) ([]kyber.Point, []kyber.Point, []kyber.Point, []kyber.Point, error) {
+func (vss *ABVSS) generateEncShares(index int) ([]kyber.Point, []kyber.Point, []kyber.Point, []kyber.Point, error) {
 	if vss.Distributor == nil {
 		return nil, nil, nil, nil, errors.New("not a distributor")
 	}
