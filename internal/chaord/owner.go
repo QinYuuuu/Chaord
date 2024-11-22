@@ -8,13 +8,9 @@ import (
 )
 
 type Owner struct {
-	nodeNum     int
-	degree      int
-	dataScale   int
-	sampleScale int
+	*Param
 
 	data        []*big.Int
-	p           *big.Int
 	b           []*big.Int
 	merkleProof []merkle.Witness
 
@@ -26,18 +22,17 @@ type Owner struct {
 	bfChan   chan BFMsg
 }
 
-func NewOwner(nodeNum, degree, dataScale, sampleScale int, async bool) *Owner {
+func NewOwner(param *Param, async bool) *Owner {
 	owner := &Owner{
-		nodeNum:     nodeNum,
-		dataScale:   dataScale,
-		sampleScale: sampleScale,
+		Param: param,
 
-		data:        make([]*big.Int, dataScale),
-		b:           make([]*big.Int, dataScale),
-		merkleProof: make([]merkle.Witness, dataScale),
+		data:        make([]*big.Int, param.dataScale),
+		b:           make([]*big.Int, param.dataScale),
+		merkleProof: make([]merkle.Witness, param.dataScale),
 	}
+
 	if async {
-		owner.flagChan = make(chan FlagMsg, nodeNum)
+		owner.flagChan = make(chan FlagMsg, param.nodeNum)
 		owner.bfChan = make(chan BFMsg)
 	}
 	return owner
@@ -78,12 +73,9 @@ func (owner *Owner) step3() {
 	}
 }
 
-func (owner *Owner) batchDDGInit() [][]*big.Int {
-	// share secrets on Zp
-	boShares := make([][]*big.Int, owner.dataScale)
-	for i := 0; i < owner.dataScale; i++ {
-		s := rand.Int() % 2
-		boShares[i] = shareSecret(s, owner.nodeNum, owner.degree, owner.p)
-	}
-	return boShares
+func (owner *Owner) batchDDGInit() (*big.Int, []*big.Int) {
+	// share secret on Zp
+	s := rand.Int() % 2
+	boShares := shareSecret(s, owner.nodeNum, owner.degree, owner.p)
+	return new(big.Int).SetInt64(int64(s)), boShares
 }

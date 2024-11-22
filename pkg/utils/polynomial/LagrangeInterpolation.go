@@ -117,15 +117,14 @@ func polynomialDivByConstant(a []*big.Int, c, R *big.Int) []*big.Int {
 
 // LagrangeInterpolation implements the Lagrange interpolation:
 // https://en.wikipedia.org/wiki/Lagrange_polynomial
-func LagrangeInterpolation(x, y []*big.Int, R *big.Int) (Polynomial, error) {
+func LagrangeInterpolation(x, y []*big.Int, R *big.Int) (*Polynomial, error) {
 	// p(x) will be the interpoled polynomial
 	// var p []*big.Int
 	if len(x) != len(y) {
-		return Polynomial{}, fmt.Errorf("len(x)!=len(y): %d, %d", len(x), len(y))
+		return nil, fmt.Errorf("len(x)!=len(y): %d, %d", len(x), len(y))
 	}
 	p := arrayOfZeroes(len(x))
 	k := len(x)
-
 	for j := 0; j < k; j++ {
 		// jPol is the Lagrange basis polynomial for each point
 		var jPol []*big.Int
@@ -134,6 +133,7 @@ func LagrangeInterpolation(x, y []*big.Int, R *big.Int) (Polynomial, error) {
 			if m == j {
 				continue
 			}
+
 			// numerator & denominator of the current iteration
 			num := []*big.Int{fNeg(x[m], R), big.NewInt(1)} // (x^1 - x_m)
 			den := fSub(x[j], x[m], R)                      // x_j-x_m
@@ -147,6 +147,8 @@ func LagrangeInterpolation(x, y []*big.Int, R *big.Int) (Polynomial, error) {
 		}
 		p = polynomialAdd(p, polynomialMulByConstant(jPol, y[j], R), R)
 	}
-	result := Polynomial{coef: p}
+	result := &Polynomial{
+		coef: p,
+	}
 	return result, nil
 }

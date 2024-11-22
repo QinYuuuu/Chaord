@@ -11,31 +11,57 @@ import (
 	"strconv"
 )
 
+type Param struct {
+	nodeNum     int
+	degree      int
+	dataScale   int
+	sampleScale int
+	p           *big.Int
+}
+
+func NewParam(nodeNum, degree, dataScale, sampleScale int, p *big.Int) *Param {
+	return &Param{
+		nodeNum:     nodeNum,
+		degree:      degree,
+		dataScale:   dataScale,
+		sampleScale: sampleScale,
+		p:           p,
+	}
+}
+
 type Node struct {
-	nodeNum    int
-	degree     int
-	dataScale  int
-	percentage float64
+	*Param
+	distributeParam int
+	percentage      float64
 
-	p      *big.Int
-	rChan  chan merkle.Root
-	r1Chan chan merkle.Root
-
+	rChan    chan merkle.Root
+	r1Chan   chan merkle.Root
 	bHatChan chan []*big.Int
 	pHatChan chan []merkle.Witness
 
 	r  merkle.Root
 	r1 merkle.Root
 
-	random rand.Rand
+	random *rand.Rand
 
 	osv0  *osv.Node
 	osv1  *osv.Node
 	osvTX *osv.Node
 }
 
-func (n *Node) Init() {
-
+func NewNode(param *Param, dP int, async bool) *Node {
+	n := &Node{
+		Param:           param,
+		distributeParam: dP,
+		random:          rand.New(rand.NewSource(1)),
+	}
+	if async {
+		n.rChan = make(chan merkle.Root)
+		n.r1Chan = make(chan merkle.Root)
+		n.bHatChan = make(chan []*big.Int)
+		n.pHatChan = make(chan []merkle.Witness)
+	}
+	return n
 }
 
 func (n *Node) step1() {
@@ -64,7 +90,7 @@ func (n *Node) step3() {
 		n.osv0.Init()
 		n.osv1.Init()
 	}
-	// RBC r1
+
 }
 
 func (n *Node) step4() {
@@ -118,31 +144,20 @@ func reconstruct(x, y []*big.Int, p *big.Int) *big.Int {
 	return s
 }
 
-func (n *Node) batchDDGOffline() ([]*big.Int, []*big.Int, []*big.Int) {
+func batchDDGOffline(nodeNum, degree int, p *big.Int) (*big.Int, []*big.Int, []*big.Int) {
 	// generate R and R^2 share
 	R := rand.Int() % 2
-	RShares := shareSecret(R, n.nodeNum, n.degree, n.p)
-	R2Shares := shareSecret(R*R, n.nodeNum, n.degree, n.p)
-	// coin shares
-	coinShares := shareSecret(n.random.Int(), n.nodeNum, n.degree, n.p)
-	return RShares, R2Shares, coinShares
+	RShares := shareSecret(R, nodeNum, degree, p)
+	R2Shares := shareSecret(R*R, nodeNum, degree, p)
+	return new(big.Int).SetInt64(int64(R)), RShares, R2Shares
 }
 
-func (n *Node) mpcStep1(boShares, rShares []*big.Int) []*big.Int {
-	// verify s^2 - s = 0
-	boAddR := new(big.Int).Mod(new(big.Int).Add(boShares[1], rShares[1]), n.p)
-	boAddRSquare := new(big.Int).Mul(boAddR, boAddR)
-	return shareSecretBig(boAddRSquare, n.nodeNum, n.degree, n.p)
-}
+func (n *Node) coin() {
+	coinPre := make([]int, n.distributeParam)
+	for i := 0; i < n.distributeParam; i++ {
+		coinPre[i] = n.random.Int() % 2
+	}
 
-func (n *Node) mpcStep2(index, boAddRSquareShares []*big.Int) *big.Int {
-	return reconstruct(index, boAddRSquareShares, n.p)
-}
-
-func (n *Node) batchDDGStep2(x, y []*big.Int) {
-	// reconstruct s_c
-	reconstruct(x, y, new(big.Int).SetInt64(2))
-	//
 }
 
 func (n *Node) odoLocal() {

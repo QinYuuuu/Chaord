@@ -3,32 +3,29 @@ package chaord
 import (
 	"Chaord/internal/reedsolomonP"
 	"Chaord/pkg/crypto/commit/merkle"
-	"math/rand"
-
 	"hash"
 	"math/big"
+	"math/rand"
 )
 
 type Consumer struct {
-	nodeNum     int
-	degree      int
-	dataScale   int
-	sampleScale int
-	b           []*big.Int
-	bfChan      chan BFMsg
-	cHatChan    chan CHatMsg
-	hasher      hash.Hash
+	*Param
+
+	bfChan   chan BFMsg
+	cHatChan chan CHatMsg
+	hasher   hash.Hash
 
 	rsCode *reedsolomonP.RSGFp
 }
 
-func NewConsumer(n, dataScale int, sampleScale int) *Consumer {
-	return &Consumer{
-		nodeNum:     n,
-		dataScale:   dataScale,
-		sampleScale: sampleScale,
-		cHatChan:    make(chan CHatMsg, n),
+func NewConsumer(param *Param, async bool) *Consumer {
+	consumer := &Consumer{
+		Param: param,
 	}
+	if async {
+		consumer.cHatChan = make(chan CHatMsg, param.nodeNum)
+	}
+	return consumer
 }
 
 func (c *Consumer) foretaste() {
@@ -88,12 +85,12 @@ func (c *Consumer) step3() {
 	}
 }
 
-func (c *Consumer) batchDDGInit() [][]*big.Int {
+func (c *Consumer) batchDDGInit() (*big.Int, []*big.Int) {
 	// share secrets on Z2
-	bcShares := make([][]*big.Int, c.dataScale)
-	for i := 0; i < c.dataScale; i++ {
-		s := rand.Int() % 2
-		bcShares[i] = shareSecret(s, c.nodeNum, c.degree, new(big.Int).SetInt64(2))
-	}
-	return bcShares
+	bcShares := make([]*big.Int, c.dataScale)
+
+	s := rand.Int() % 2
+	bcShares = shareSecret(s, c.nodeNum, c.degree, c.p)
+
+	return new(big.Int).SetInt64(int64(s)), bcShares
 }
