@@ -79,7 +79,7 @@ func (vss *ABVSS) secretSharing(pk []kyber.Point, s []*big.Int) {
 	if err != nil {
 		log.Printf("init error: %v", err)
 	}
-	err = vss.samplePoly()
+	err = vss.SamplePoly()
 	if err != nil {
 		log.Printf("sample poly error: %v", err)
 	}

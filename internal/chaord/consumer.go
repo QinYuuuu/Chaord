@@ -3,13 +3,20 @@ package chaord
 import (
 	"Chaord/internal/reedsolomonP"
 	"Chaord/pkg/crypto/commit/merkle"
+	"crypto/md5"
 	"hash"
 	"math/big"
 	"math/rand"
+	"sync"
 )
 
 type Consumer struct {
 	*Param
+
+	b             []*big.Int
+	dataDisturbed []*big.Int
+
+	bandwidth int
 
 	bfChan   chan BFMsg
 	cHatChan chan CHatMsg
@@ -20,7 +27,9 @@ type Consumer struct {
 
 func NewConsumer(param *Param, async bool) *Consumer {
 	consumer := &Consumer{
-		Param: param,
+		Param:     param,
+		hasher:    md5.New(),
+		bandwidth: 0,
 	}
 	if async {
 		consumer.cHatChan = make(chan CHatMsg, param.nodeNum)
@@ -73,20 +82,64 @@ func (c *Consumer) foretaste() {
 	 */
 }
 
-func (c *Consumer) step3() {
-	// receiver blinding factor
-	b := <-c.bfChan
-	if len(b.B) == c.dataScale {
-		tree, err := merkle.NewMerkleTree(b.B, c.hasher.Sum)
-		if err != nil {
-			return
+// use big.Int or byte
+func (c *Consumer) step2(index []*big.Int, cHatShares [][]*big.Int, bHat []*big.Int) {
+	if len(cHatShares) != c.dataScale {
+		return
+	}
+	cHat := make([]*big.Int, c.dataScale)
+	for i := 0; i < c.dataScale; i++ {
+		if cHatShares[i] == nil {
+			cHat[i] = big.NewInt(0)
+			continue
+		} else {
+			cHat[i] = reconstruct(index, cHatShares[i], c.p)
 		}
-		merkle.Commit(tree)
+
+	}
+	mHat := make([]*big.Int, c.dataScale)
+	for i := 0; i < c.dataScale; i++ {
+		mHat[i] = new(big.Int).Sub(cHat[i], bHat[i])
 	}
 }
 
+func (c *Consumer) step3(b []*big.Int) merkle.Root {
+	// receiver blinding factor
+	c.b = b
+	bByte := make([][]byte, c.dataScale)
+
+	for i := 0; i < c.dataScale; i++ {
+		bByte[i] = b[i].Bytes()
+	}
+	if len(b) != c.dataScale {
+		return nil
+	}
+	tree, err := merkle.NewMerkleTree(bByte, c.hasher.Sum)
+	if err != nil {
+		return nil
+	}
+	r := merkle.Commit(tree)
+	return r
+}
+
+func (c *Consumer) step4(index []*big.Int, cBarShares [][]*big.Int) {
+	mBar := make([]*big.Int, c.dataScale)
+	var wg sync.WaitGroup
+	wg.Add(c.dataScale)
+	for i := 0; i < c.dataScale; i++ {
+		go func(i int) {
+			tmp := reconstruct(index, cBarShares[i], c.p)
+			mBar[i] = new(big.Int).Sub(tmp, c.b[i])
+			mBar[i].Mod(mBar[i], c.p)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+	c.dataDisturbed = mBar
+}
+
 func (c *Consumer) batchDDGInit() (*big.Int, []*big.Int) {
-	// share secrets on Z2
+	// share secret on Zp
 	bcShares := make([]*big.Int, c.dataScale)
 
 	s := rand.Int() % 2

@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"math/rand"
 
-	"Chaord/pkg/crypto/utils"
+	"Chaord/pkg/utils"
 	"Chaord/pkg/utils/polynomial"
 )
 
@@ -26,6 +26,11 @@ func (vss *ABVSS) ReceiverInit(sk kyber.Scalar) {
 		Received:     make(chan bool),
 		randomBeacon: rand.New(rand.NewSource(ReceiverRandSeed)),
 	}
+}
+
+func (vss *ABVSS) SetShares(fShares, gShares []*big.Int) {
+	vss.fShares = fShares
+	vss.gShares = gShares
 }
 
 func (vss *ABVSS) GetShares() ([]*big.Int, []*big.Int) {
@@ -77,6 +82,14 @@ func (vss *ABVSS) obtainShares(zix, ziy, xix, xiy []kyber.Point, index int) erro
 		vss.Received <- true
 	}
 	return nil
+}
+
+func (vss *ABVSS) GetLCM() LcmTuple {
+	lcm, err := vss.constructLCM()
+	if err != nil {
+		log.Printf("vss.constructLCM err %v", err)
+	}
+	return lcm
 }
 
 func (vss *ABVSS) constructLCM() (LcmTuple, error) {

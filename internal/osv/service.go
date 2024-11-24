@@ -4,6 +4,17 @@ import (
 	"log"
 )
 
+func RouteLocal(osv []*Node) {
+	for i := range osv {
+		go func(i int) {
+			for {
+				msg := <-osv[i].SendChan
+				osv[msg.DestID].ReceiveChan <- msg
+			}
+		}(i)
+	}
+}
+
 func (osv *Node) Run() {
 	var msg Message
 	for {

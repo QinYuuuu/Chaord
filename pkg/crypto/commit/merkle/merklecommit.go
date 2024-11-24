@@ -20,10 +20,10 @@ func (w *Witness) SetHash(hash [][]byte) {
 func (w *Witness) SetPos(left []bool) {
 	w.Left = left
 }
-func (w Witness) Hash() [][]byte {
+func (w *Witness) Hash() [][]byte {
 	return w.HashF
 }
-func (w Witness) Pos() []bool { //true if
+func (w *Witness) Pos() []bool { //true if
 	return w.Left
 }
 

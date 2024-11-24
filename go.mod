@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/Nik-U/pbc v0.0.0-20181205041846-3e516ca0c5d6
 	github.com/klauspost/reedsolomon v1.12.4
+	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.3.0
 	go.dedis.ch/kyber/v3 v3.1.0
 	go.dedis.ch/kyber/v4 v4.0.0-pre2

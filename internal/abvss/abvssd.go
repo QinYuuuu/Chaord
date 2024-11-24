@@ -11,7 +11,7 @@ import (
 )
 
 func (vss *ABVSS) DistributorInit(pk []kyber.Point, s []*big.Int) error {
-	if len(pk) != vss.nodeNum {
+	if pk != nil && len(pk) != vss.nodeNum {
 		return errors.New("node number mismatch PK number")
 	}
 	if len(s) != vss.batchSize {
@@ -26,7 +26,7 @@ func (vss *ABVSS) DistributorInit(pk []kyber.Point, s []*big.Int) error {
 	return nil
 }
 
-func (vss *ABVSS) samplePoly() error {
+func (vss *ABVSS) SamplePoly() error {
 	if vss.Distributor == nil {
 		return errors.New("not a distributor")
 	}
@@ -51,7 +51,7 @@ func (vss *ABVSS) samplePoly() error {
 	return nil
 }
 
-func (vss *ABVSS) generateRawShares(index int) ([]*big.Int, []*big.Int, error) {
+func (vss *ABVSS) GenerateRawShares(index int) ([]*big.Int, []*big.Int, error) {
 	if vss.Distributor == nil {
 		return nil, nil, errors.New("not a distributor")
 	}
