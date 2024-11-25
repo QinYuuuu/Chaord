@@ -3,8 +3,6 @@ package chaord
 import (
 	"Chaord/internal/reedsolomonP"
 	"Chaord/pkg/crypto/commit/merkle"
-	"crypto/md5"
-	"hash"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -16,20 +14,20 @@ type Consumer struct {
 	b             []*big.Int
 	dataDisturbed []*big.Int
 
-	bandwidth int
+	bandwidthSend int
+	bandwidthRecv int
 
 	bfChan   chan BFMsg
 	cHatChan chan CHatMsg
-	hasher   hash.Hash
 
 	rsCode *reedsolomonP.RSGFp
 }
 
 func NewConsumer(param *Param, async bool) *Consumer {
 	consumer := &Consumer{
-		Param:     param,
-		hasher:    md5.New(),
-		bandwidth: 0,
+		Param:         param,
+		bandwidthSend: 0,
+		bandwidthRecv: 0,
 	}
 	if async {
 		consumer.cHatChan = make(chan CHatMsg, param.nodeNum)
@@ -82,7 +80,6 @@ func (c *Consumer) foretaste() {
 	 */
 }
 
-// use big.Int or byte
 func (c *Consumer) step2(index []*big.Int, cHatShares [][]*big.Int, bHat []*big.Int) {
 	if len(cHatShares) != c.dataScale {
 		return
@@ -114,11 +111,13 @@ func (c *Consumer) step3(b []*big.Int) merkle.Root {
 	if len(b) != c.dataScale {
 		return nil
 	}
-	tree, err := merkle.NewMerkleTree(bByte, c.hasher.Sum)
+	tree, err := merkle.NewMerkleTree(bByte, MD5hasher)
 	if err != nil {
 		return nil
 	}
 	r := merkle.Commit(tree)
+	c.bandwidthSend += c.nodeNum * len(r)
+
 	return r
 }
 
@@ -144,6 +143,8 @@ func (c *Consumer) batchDDGInit() (*big.Int, []*big.Int) {
 
 	s := rand.Int() % 2
 	bcShares = shareSecret(s, c.nodeNum, c.degree, c.p)
+
+	c.bandwidthSend += c.nodeNum * len(bcShares[0].Bytes())
 
 	return new(big.Int).SetInt64(int64(s)), bcShares
 }

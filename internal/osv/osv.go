@@ -37,6 +37,8 @@ type Node struct {
 	done     bool
 	OutPut   chan bool
 
+	bandwidth int
+
 	SendChan    chan Message
 	ReceiveChan chan Message
 }
@@ -91,8 +93,13 @@ func (osv *Node) Init() {
 		}
 	}
 	for _, msg := range msgs {
+		osv.bandwidth += 9
 		osv.SendChan <- msg
 	}
+}
+
+func (osv *Node) GetBandwidth() int {
+	return osv.bandwidth
 }
 
 func (osv *Node) Done() bool {

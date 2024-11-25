@@ -1,0 +1,40 @@
+2024/11/25 13:53:13 setting: node number-64, threshold-21, distribution parameter-100, data scale-96
+2024/11/25 13:53:13 owner time:5487 ms
+2024/11/25 13:53:13 owner Band:199344 Byte
+2024/11/25 13:53:13 node time:5746 ms
+2024/11/25 13:53:13 node Band:194122 Byte
+2024/11/25 13:53:13 consumer time:8151 ms
+2024/11/25 13:53:13 consumer Band:196608 Byte
+2024/11/25 13:53:13 ==========================================
+2024/11/25 14:10:05 setting: node number-31, threshold-10, distribution parameter-100, data scale-96
+2024/11/25 14:10:05 owner time:674 ms
+2024/11/25 14:10:05 owner Band:103056 Byte
+2024/11/25 14:10:05 node time:710 ms
+2024/11/25 14:10:05 node Band:97108 Byte
+2024/11/25 14:10:05 consumer time:1000 ms
+2024/11/25 14:10:05 consumer Band:101376 Byte
+2024/11/25 14:10:05 ==========================================
+2024/11/25 14:10:16 setting: node number-16, threshold-5, distribution parameter-100, data scale-96
+2024/11/25 14:10:16 owner time:99 ms
+2024/11/25 14:10:16 owner Band:56480 Byte
+2024/11/25 14:10:16 node time:113 ms
+2024/11/25 14:10:16 node Band:50217 Byte
+2024/11/25 14:10:16 consumer time:154 ms
+2024/11/25 14:10:16 consumer Band:55296 Byte
+2024/11/25 14:10:16 ==========================================
+2024/11/25 14:10:25 setting: node number-7, threshold-2, distribution parameter-100, data scale-96
+2024/11/25 14:10:25 owner time:13 ms
+2024/11/25 14:10:25 owner Band:28560 Byte
+2024/11/25 14:10:25 node time:22 ms
+2024/11/25 14:10:25 node Band:22084 Byte
+2024/11/25 14:10:25 consumer time:19 ms
+2024/11/25 14:10:25 consumer Band:27648 Byte
+2024/11/25 14:10:25 ==========================================
+2024/11/25 14:10:35 setting: node number-4, threshold-1, distribution parameter-100, data scale-96
+2024/11/25 14:10:35 owner time:3 ms
+2024/11/25 14:10:35 owner Band:19244 Byte
+2024/11/25 14:10:35 node time:10 ms
+2024/11/25 14:10:35 node Band:12706 Byte
+2024/11/25 14:10:35 consumer time:4 ms
+2024/11/25 14:10:35 consumer Band:18432 Byte
+2024/11/25 14:10:35 ==========================================

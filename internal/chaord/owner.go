@@ -4,7 +4,6 @@ import (
 	"Chaord/internal/abvss"
 	"Chaord/pkg/crypto/commit/merkle"
 	"Chaord/pkg/utils"
-	"crypto/md5"
 	"errors"
 	"log"
 	"math/big"
@@ -63,8 +62,7 @@ func (owner *Owner) step1() ([][]*big.Int, [][]*big.Int, merkle.Root) {
 		owner.b[i] = utils.RandomNum(owner.p)
 		bByte[i] = owner.b[i].Bytes()
 	}
-	hasher := md5.New()
-	tree, err := merkle.NewMerkleTree(bByte, hasher.Sum)
+	tree, err := merkle.NewMerkleTree(bByte, MD5hasher)
 	if err != nil {
 		return nil, nil, nil
 	}
@@ -139,6 +137,6 @@ func (owner *Owner) batchDDGInit() (*big.Int, []*big.Int) {
 	// share secret on Zp
 	s := rand.Int() % 2
 	boShares := shareSecret(s, owner.nodeNum, owner.degree, owner.p)
-	owner.bandwidth += owner.nodeNum
+	owner.bandwidth += owner.nodeNum * len(boShares[0].Bytes())
 	return new(big.Int).SetInt64(int64(s)), boShares
 }

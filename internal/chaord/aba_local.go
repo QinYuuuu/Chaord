@@ -24,9 +24,9 @@ func ABA1(nodeNum, degree int, nodes []*Node) {
 func ABA1(nodeNum, degree int, nodes []*Node) {
 	osvs := make([]*osv.Node, nodeNum)
 	for i := 0; i < nodeNum; i++ {
-		nodes[i].osvTX = osv.NewOSV(nodeNum, degree, i)
-		nodes[i].osvTX.Init()
-		osvs[i] = nodes[i].osvTX
+		nodes[i].osv1 = osv.NewOSV(nodeNum, degree, i)
+		nodes[i].osv1.Init()
+		osvs[i] = nodes[i].osv1
 	}
 	go osv.RouteLocal(osvs)
 	log.Printf("ABA1 start")

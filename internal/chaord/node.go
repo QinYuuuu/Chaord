@@ -5,8 +5,6 @@ import (
 	"Chaord/internal/osv"
 	"Chaord/pkg/crypto/commit/merkle"
 	"Chaord/pkg/utils/polynomial"
-	"bytes"
-	"crypto/md5"
 	"log"
 	"math/big"
 	"math/rand"
@@ -92,28 +90,28 @@ func (n *Node) step2Sample(cShares [][]*big.Int) ([][]*big.Int, []int) {
 	N := n.sampleScale
 	var pi []byte
 	bigD := new(big.Int).SetInt64(int64(n.dataScale))
-	hasher := md5.New()
 	for i := 0; i < N; i++ {
 		content := append(pi, []byte(strconv.Itoa(i))...)
-		index := new(big.Int).Mod(new(big.Int).SetBytes(hasher.Sum(content)), bigD)
+		index := new(big.Int).Mod(new(big.Int).SetBytes(MD5hasher(content)), bigD)
 		flag[index.Int64()] = 1
 	}
-	cHat := make([][]*big.Int, n.dataScale)
+	cHatShares := make([][]*big.Int, n.dataScale)
 	for i := 0; i < n.dataScale; i++ {
 		if flag[i] == 1 {
-			cHat[i] = cShares[i]
+			cHatShares[i] = cShares[i]
 		} else {
-			cHat[i] = nil
+			cHatShares[i] = nil
 		}
 	}
-	return cHat, flag
+	n.bandwidth += len(flag)
+	n.bandwidth += n.dataScale * n.nodeNum * len(cShares[0][0].Bytes())
+	return cHatShares, flag
 }
 
 func (n *Node) step2Forward(bHat []*big.Int, pHat []merkle.Witness) {
-	hasher := md5.New()
 	for i := 0; i < n.dataScale; i++ {
 		if bHat[i] != nil {
-			_, err := merkle.Verify(n.r, pHat[i], bHat[i].Bytes(), hasher.Sum)
+			_, err := merkle.Verify(n.r, pHat[i], bHat[i].Bytes(), MD5hasher)
 			if err != nil {
 				return
 			}
@@ -122,11 +120,10 @@ func (n *Node) step2Forward(bHat []*big.Int, pHat []merkle.Witness) {
 }
 
 func (n *Node) step3() {
-	n.r1 = <-n.r1Chan
-	if bytes.Compare(n.r1, n.r) == 0 {
-		n.osv0.Init()
-		n.osv1.Init()
-	}
+	// notify owner
+	n.bandwidth += 1
+
+	// run ABA
 
 }
 

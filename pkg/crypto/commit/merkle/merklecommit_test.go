@@ -21,6 +21,7 @@ func TestNewMerkleTree(t *testing.T) {
 	m, _ := NewMerkleTree(dataList, hasher.Sum)
 	t.Run("Verify the inorder of merkle tree", func(t *testing.T) {
 		got := m.Root().Hash()
+		fmt.Println(got)
 		if !reflect.DeepEqual(got, roothash) {
 			t.Errorf("got %v want %v", got, roothash)
 		}

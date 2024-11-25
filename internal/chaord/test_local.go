@@ -88,8 +88,14 @@ func LocalTest(nodeNum, degree, dataScale, sampleScale, distributeParam int, p *
 		// node verify s^2-s
 		for node := 0; node < nodeNum; node++ {
 			boAddRShares[node] = new(big.Int).Add(boShares[node], rShares[node])
+			nodes[node].bandwidth += len(boAddRShares[node].Bytes())
 		}
 		boAddR := reconstruct(index, boAddRShares, p)
+
+		for i := 0; i < nodeNum; i++ {
+			nodes[i].bandwidth += len(boAddRShares[i].Bytes())
+		}
+
 		value := new(big.Int).Mul(boAddR, boAddR)
 		boAddRSquareShares := shareSecretBig(value, nodeNum, degree, p)
 		boAddRSquare := reconstruct(index, boAddRSquareShares, p)
@@ -114,6 +120,10 @@ func LocalTest(nodeNum, degree, dataScale, sampleScale, distributeParam int, p *
 
 		mpcResult := reconstruct(index, mpcShares, p)
 
+		for i := 0; i < nodeNum; i++ {
+			nodes[i].bandwidth += len(mpcShares[i].Bytes())
+		}
+
 		if mpcResult.Int64() != 0 {
 			log.Printf("Chaord - MPC error, %v\n", mpcResult)
 		}
@@ -135,6 +145,8 @@ func LocalTest(nodeNum, degree, dataScale, sampleScale, distributeParam int, p *
 		nodes[i].step2Forward(bHat, pHat)
 	}
 
+	consumer.bandwidthRecv += dataScale * len(bHat[0].Bytes())
+	consumer.bandwidthRecv += dataScale * nodeNum * len(cHat[0][0].Bytes())
 	start = time.Now()
 	consumer.step2(index, cHat, bHat)
 	end = time.Now()
@@ -148,6 +160,11 @@ func LocalTest(nodeNum, degree, dataScale, sampleScale, distributeParam int, p *
 		consumerTime += end.Sub(start)
 
 		bcReconstruct := reconstruct(index, bcShares, p)
+
+		for i := 0; i < nodeNum; i++ {
+			nodes[i].bandwidth += len(bcShares[i].Bytes())
+		}
+
 		if bc.Cmp(bcReconstruct) != 0 {
 			log.Printf("Chaord - bc_reconstruct error, get %v, want %v\n", bcReconstruct, bc)
 		}
@@ -162,6 +179,10 @@ func LocalTest(nodeNum, degree, dataScale, sampleScale, distributeParam int, p *
 			}
 		}
 		bcAddbo := reconstruct(index, bcAddboShares, p)
+		for i := 0; i < nodeNum; i++ {
+			nodes[i].bandwidth += len(bcAddboShares[i].Bytes())
+		}
+
 		tmp := new(big.Int).Add(bc, bo)
 		tmp.Mod(tmp, BigTwo)
 		if bcAddbo.Cmp(tmp) != 0 {
@@ -176,6 +197,9 @@ func LocalTest(nodeNum, degree, dataScale, sampleScale, distributeParam int, p *
 	ownerEnd = time.Now()
 
 	bcAddboShares := BDDGStep2()
+
+	consumer.bandwidthRecv += dataScale * len(b[0].Bytes())
+
 	start = time.Now()
 	r1 := consumer.step3(b)
 	end = time.Now()
@@ -248,6 +272,8 @@ func LocalTest(nodeNum, degree, dataScale, sampleScale, distributeParam int, p *
 
 	nodeEnd = time.Now()
 
+	//consumer.bandwidthRecv += dataScale * nodeNum * len(cBarShares[0])
+
 	start = time.Now()
 	consumer.step4(index, cBarShares)
 	end = time.Now()
@@ -255,16 +281,30 @@ func LocalTest(nodeNum, degree, dataScale, sampleScale, distributeParam int, p *
 
 	ownerTime = ownerEnd.Sub(ownerStart)
 	nodeTime = nodeEnd.Sub(nodeStart)
+
+	for i := 0; i < nodeNum; i++ {
+		nodes[i].bandwidth += nodes[i].osvTX.GetBandwidth()
+		nodes[i].bandwidth += nodes[i].osv1.GetBandwidth()
+	}
+
 	logFile, err := os.OpenFile("output.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println("open log file failed, err:", err)
 		return
 	}
 	log.SetOutput(logFile)
+	log.Printf("setting: node number-%v, threshold-%v, distribution parameter-%v, data scale-%v\n", nodeNum, degree, distributeParam, dataScale)
 	log.Printf("owner time:%v ms\n", ownerTime.Milliseconds())
 	log.Printf("owner Band:%v Byte\n", owner.bandwidth)
 	log.Printf("node time:%v ms\n", nodeTime.Milliseconds())
 	log.Printf("node Band:%v Byte\n", nodes[0].bandwidth)
 	log.Printf("consumer time:%v ms\n", consumerTime.Milliseconds())
-	log.Printf("consumer Band:%v Byte\n", consumer.bandwidth)
+
+	consumerBand := consumer.bandwidthRecv
+	if consumer.bandwidthRecv < consumer.bandwidthSend {
+		consumerBand = consumer.bandwidthSend
+	}
+
+	log.Printf("consumer Band:%v Byte\n", consumerBand)
+	log.Printf("==========================================")
 }

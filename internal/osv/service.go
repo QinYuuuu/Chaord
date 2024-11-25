@@ -25,6 +25,8 @@ func (osv *Node) Run() {
 			return
 		}
 		for _, newMsg := range recvMsgs {
+			// two int, one char
+			osv.bandwidth += 9
 			osv.SendChan <- newMsg
 		}
 	}
